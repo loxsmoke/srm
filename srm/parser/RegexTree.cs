@@ -12,15 +12,9 @@ namespace System.Text.RegularExpressions {
     using System.Collections;
     using System.Collections.Generic;
 
-    // PIETER: made public instead of internal for
-    // direct access from Automata.Tests
-    public sealed class RegexTree {
-#if SILVERLIGHT
-        internal RegexTree(RegexNode root, Dictionary<Int32, Int32> caps, Int32[] capnumlist, int captop, Dictionary<String, Int32> capnames, String[] capslist, RegexOptions opts)
-#else
-        internal RegexTree(RegexNode root, Hashtable caps, Int32[] capnumlist, int captop, Hashtable capnames, String[] capslist, RegexOptions opts)
-#endif
-
+    public sealed class RegexTree 
+    {
+        internal RegexTree(RegexNode root, Dictionary<int, int> caps, int[] capnumlist, int captop, Dictionary<string, int> capnames, string[] capslist, RegexOptions opts)
         {
             _root = root;
             _caps = caps;
@@ -32,18 +26,10 @@ namespace System.Text.RegularExpressions {
         }
 
         internal RegexNode _root;
-#if SILVERLIGHT
-        internal Dictionary<Int32, Int32> _caps;
-#else
-        internal Hashtable _caps;
-#endif
-        internal Int32[]  _capnumlist;
-#if SILVERLIGHT
-        internal Dictionary<String, Int32> _capnames;
-#else
-        internal Hashtable _capnames;
-#endif
-        internal String[]  _capslist;
+        internal Dictionary<int, int> _caps;
+        internal int[]  _capnumlist;
+        internal Dictionary<string, int> _capnames;
+        internal string[]  _capslist;
         internal RegexOptions _options;
         internal int       _captop;
 

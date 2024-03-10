@@ -34,23 +34,20 @@ namespace System.Text.RegularExpressions {
         internal int _capcount;
         internal int _captop;
         internal int _capsize;
-#if SILVERLIGHT
-        internal Dictionary<Int32, Int32> _caps;
-        internal Dictionary<String, Int32> _capnames;
-#else
-        internal Hashtable _caps;
-        internal Hashtable _capnames;
-#endif
-        internal Int32[] _capnumlist;
-        internal List<String> _capnamelist;
+
+        internal Dictionary<int, int> _caps;
+        internal Dictionary<string, int> _capnames;
+
+        internal int[] _capnumlist;
+        internal List<string> _capnamelist;
 
         internal RegexOptions _options;
         internal List<RegexOptions> _optionsStack;
 
         internal bool _ignoreNextParen = false;
         
-        internal const int MaxValueDiv10 = Int32.MaxValue / 10;
-        internal const int MaxValueMod10 = Int32.MaxValue % 10;
+        internal const int MaxValueDiv10 = int.MaxValue / 10;
+        internal const int MaxValueMod10 = int.MaxValue % 10;
 
         /*
          * This static call constructs a RegexTree from a regular expression
@@ -58,24 +55,19 @@ namespace System.Text.RegularExpressions {
          *
          * The method creates, drives, and drops a parser instance.
          */
-        internal static RegexTree Parse(String re, RegexOptions op) {
-            RegexParser p;
-            RegexNode root;
-            String[] capnamelist;
-
-            p = new RegexParser((op & RegexOptions.CultureInvariant) != 0 ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture);
+        internal static RegexTree Parse(String re, RegexOptions op) 
+        {
+            RegexParser p = new RegexParser((op & RegexOptions.CultureInvariant) != 0 ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture);
 
             p._options = op;
 
             p.SetPattern(re);
             p.CountCaptures();
             p.Reset(op);
-            root = p.ScanRegex();
 
-            if (p._capnamelist == null)
-                capnamelist = null;
-            else
-                capnamelist = p._capnamelist.ToArray();
+            RegexNode root = p.ScanRegex();
+
+            var capnamelist = p._capnamelist?.ToArray();
 
             return new RegexTree(root, p._caps, p._capnumlist, p._captop, p._capnames, capnamelist, op);
         }
@@ -84,11 +76,7 @@ namespace System.Text.RegularExpressions {
          * This static call constructs a flat concatenation node given
          * a replacement pattern.
          */
-#if SILVERLIGHT
-        internal static RegexReplacement ParseReplacement(String rep, Dictionary<Int32, Int32> caps, int capsize, Dictionary<String, Int32> capnames, RegexOptions op) {
-#else
-        internal static RegexReplacement ParseReplacement(String rep, Hashtable caps, int capsize, Hashtable capnames, RegexOptions op) {
-#endif
+        internal static RegexReplacement ParseReplacement(String rep, Dictionary<int, int> caps, int capsize, Dictionary<String, Int32> capnames, RegexOptions op) {
             RegexParser p;
             RegexNode root;
 
@@ -188,38 +176,31 @@ namespace System.Text.RegularExpressions {
         /*
          * Private constructor.
          */
-        private RegexParser(CultureInfo culture) {
+        private RegexParser(CultureInfo culture) 
+        {
             _culture = culture;
             _optionsStack = new List<RegexOptions>();
-#if SILVERLIGHT
-            _caps = new Dictionary<Int32,Int32>();
-#else
-            _caps = new Hashtable();
-#endif
-
+            _caps = new Dictionary<int, int>();
         }
 
         /*
          * Drops a string into the pattern buffer.
          */
-        internal void SetPattern(String Re) {
-            if (Re == null)
-                Re = String.Empty;
-            _pattern = Re;
+        internal void SetPattern(string Re) 
+        {
+            _pattern = Re ?? string.Empty;
             _currentPos = 0;
         }
 
         /*
          * Resets parsing to the beginning of the pattern.
          */
-        internal void Reset(RegexOptions topopts) {
+        internal void Reset(RegexOptions topopts) 
+        {
             _currentPos = 0;
             _autocap = 1;
             _ignoreNextParen = false;
-
-            if (_optionsStack.Count > 0)
-                _optionsStack.RemoveRange(0, _optionsStack.Count - 1);
-
+            _optionsStack = new List<RegexOptions>();
             _options = topopts;
             _stack = null;
         }
@@ -227,13 +208,15 @@ namespace System.Text.RegularExpressions {
         /*
          * The main parsing function.
          */
-        internal RegexNode ScanRegex() {
+        internal RegexNode ScanRegex() 
+        {
             char ch = '@'; // nonspecial ch, means at beginning
             bool isQuantifier = false;
 
             StartGroup(new RegexNode(RegexNode.Capture, _options, 0, -1));
 
-            while (CharsRight() > 0) {
+            while (CharsRight() > 0) 
+            {
                 bool wasPrevQuantifier = isQuantifier;
                 isQuantifier = false;
 
@@ -262,7 +245,8 @@ namespace System.Text.RegularExpressions {
                 } else
                     ch = ' '; // nonspecial, means at ordinary char
 
-                if (startpos < endpos) {
+                if (startpos < endpos) 
+                {
                     int cchUnquantified = endpos - startpos - (isQuantifier ? 1 : 0);
 
                     wasPrevQuantifier = false;
@@ -274,7 +258,8 @@ namespace System.Text.RegularExpressions {
                         AddUnitOne(CharAt(endpos - 1));
                 }
 
-                switch (ch) {
+                switch (ch) 
+                {
                     case '!':
                         goto BreakOuterScan;
 
@@ -285,12 +270,14 @@ namespace System.Text.RegularExpressions {
                         AddUnitSet(ScanCharClass(UseOptionI()).ToStringClass());
                         break;
 
-                    case '(': {
+                    case '(': 
+                        {
                             RegexNode grouper;
 
                             PushOptions();
 
-                            if (null == (grouper = ScanGroupOpen())) {
+                            if (null == (grouper = ScanGroupOpen())) 
+                            {
                                 PopKeepOptions();
                             }
                             else {
@@ -305,7 +292,7 @@ namespace System.Text.RegularExpressions {
                         goto ContinueOuterScan;
 
                     case ')':
-                        if (EmptyStack())
+                        if (IsStackEmpty)
                             throw MakeException(SR.GetString(SR.TooManyParens));
 
                         AddGroup();
@@ -352,7 +339,8 @@ namespace System.Text.RegularExpressions {
 
                 ScanBlank();
 
-                if (CharsRight() == 0 || !(isQuantifier = IsTrueQuantifier())) {
+                if (CharsRight() == 0 || !(isQuantifier = IsTrueQuantifier()))
+                {
                     AddConcatenate();
                     goto ContinueOuterScan;
                 }
@@ -360,15 +348,17 @@ namespace System.Text.RegularExpressions {
                 ch = MoveRightGetChar();
 
                 // Handle quantifiers
-                while (Unit() != null) {
+                while (Unit() != null)
+                {
                     int min;
                     int max;
                     bool lazy;
 
-                    switch (ch) {
+                    switch (ch)
+                    {
                         case '*':
                             min = 0;
-                            max = Int32.MaxValue;
+                            max = int.MaxValue;
                             break;
 
                         case '?':
@@ -378,23 +368,27 @@ namespace System.Text.RegularExpressions {
 
                         case '+':
                             min = 1;
-                            max = Int32.MaxValue;
+                            max = int.MaxValue;
                             break;
 
-                        case '{': {
+                        case '{':
+                            {
                                 startpos = Textpos();
                                 max = min = ScanDecimal();
-                                if (startpos < Textpos()) {
-                                    if (CharsRight() > 0 && RightChar() == ',') {
+                                if (startpos < Textpos())
+                                {
+                                    if (CharsRight() > 0 && RightChar() == ',')
+                                    {
                                         MoveRight();
                                         if (CharsRight() == 0 || RightChar() == '}')
-                                            max = Int32.MaxValue;
+                                            max = int.MaxValue;
                                         else
                                             max = ScanDecimal();
                                     }
                                 }
 
-                                if (startpos == Textpos() || CharsRight() == 0 || MoveRightGetChar() != '}') {
+                                if (startpos == Textpos() || CharsRight() == 0 || MoveRightGetChar() != '}') 
+                                {
                                     AddConcatenate();
                                     Textto(startpos - 1);
                                     goto ContinueOuterScan;
@@ -411,7 +405,8 @@ namespace System.Text.RegularExpressions {
 
                     if (CharsRight() == 0 || RightChar() != '?')
                         lazy = false;
-                    else {
+                    else
+                    {
                         MoveRight();
                         lazy = true;
                     }
@@ -429,7 +424,7 @@ namespace System.Text.RegularExpressions {
             BreakOuterScan: 
             ;
 
-            if (!EmptyStack())
+            if (!IsStackEmpty)
                 throw MakeException(SR.GetString(SR.NotEnoughParens));
 
             AddGroup();
@@ -440,7 +435,8 @@ namespace System.Text.RegularExpressions {
         /*
          * Simple parsing for replacement patterns
          */
-        internal RegexNode ScanReplacement() {
+        internal RegexNode ScanReplacement()
+        {
             int c;
             int startpos;
 
@@ -516,7 +512,7 @@ namespace System.Text.RegularExpressions {
                             if (!scanOnly) {
                                 if (inRange)
                                     throw MakeException(SR.GetString(SR.BadClassInCharRange, ch.ToString()));
-                                cc.AddDigit(UseOptionE(), ch == 'D', _pattern);
+                                cc.AddDigit(EcmaScriptBehavior, ch == 'D', _pattern);
                             }
                             continue;
 
@@ -525,7 +521,7 @@ namespace System.Text.RegularExpressions {
                             if (!scanOnly) {
                                 if (inRange)
                                     throw MakeException(SR.GetString(SR.BadClassInCharRange, ch.ToString()));
-                                cc.AddSpace(UseOptionE(), ch == 'S');
+                                cc.AddSpace(EcmaScriptBehavior, ch == 'S');
                             }
                             continue;
 
@@ -535,7 +531,7 @@ namespace System.Text.RegularExpressions {
                                 if (inRange)
                                     throw MakeException(SR.GetString(SR.BadClassInCharRange, ch.ToString()));
 
-                                cc.AddWord(UseOptionE(), ch == 'W');
+                                cc.AddWord(EcmaScriptBehavior, ch == 'W');
                             }
                             continue;
 
@@ -936,37 +932,37 @@ namespace System.Text.RegularExpressions {
 
                 case 'w':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.ECMAWordClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.WordClass);
 
                 case 'W':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotECMAWordClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotWordClass);
 
                 case 's':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.ECMASpaceClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.SpaceClass);
 
                 case 'S':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotECMASpaceClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotSpaceClass);
 
                 case 'd':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.ECMADigitClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.DigitClass);
 
                 case 'D':
                     MoveRight();
-                    if (UseOptionE())
+                    if (EcmaScriptBehavior)
                         return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotECMADigitClass);
                     return new RegexNode(RegexNode.Set, _options, RegexCharClass.NotDigitClass);
 
@@ -1045,7 +1041,7 @@ namespace System.Text.RegularExpressions {
             // Try to parse backreference or octal: \1
 
             else if (!angled && ch >= '1' && ch <= '9') {
-                if (UseOptionE()) {
+                if (EcmaScriptBehavior) {
                     int capnum = -1;
                     int newcapnum = (int)(ch - '0');
                     int pos = Textpos() - 1;
@@ -1118,7 +1114,7 @@ namespace System.Text.RegularExpressions {
             // Try to parse backreference: \1 or \{1} or \{cap}
 
             if (ch >= '0' && ch <= '9') {
-                if (!angled && UseOptionE()) {
+                if (!angled && EcmaScriptBehavior) {
                     int capnum = -1;
                     int newcapnum = (int)(ch - '0');
                     MoveRight();
@@ -1238,7 +1234,7 @@ namespace System.Text.RegularExpressions {
                 MoveRight();
                 i *= 8;
                 i += d;
-                if (UseOptionE() && i >= 0x20)
+                if (EcmaScriptBehavior && i >= 0x20)
                     break;
             }
 
@@ -1411,7 +1407,7 @@ namespace System.Text.RegularExpressions {
                 case 'c':
                     return ScanControl();
                 default:
-                    if (!UseOptionE() && RegexCharClass.IsWordChar(ch))
+                    if (!EcmaScriptBehavior && RegexCharClass.IsWordChar(ch))
                         throw MakeException(SR.GetString(SR.UnrecognizedEscape, ch.ToString()));
                     return ch;
             }
@@ -1451,9 +1447,9 @@ namespace System.Text.RegularExpressions {
         internal int TypeFromCode(char ch) {
             switch (ch) {
                 case 'b':
-                    return UseOptionE() ? RegexNode.ECMABoundary : RegexNode.Boundary;
+                    return EcmaScriptBehavior ? RegexNode.ECMABoundary : RegexNode.Boundary;
                 case 'B':
-                    return UseOptionE() ? RegexNode.NonECMABoundary : RegexNode.Nonboundary;
+                    return EcmaScriptBehavior ? RegexNode.NonECMABoundary : RegexNode.Nonboundary;
                 case 'A':
                     return RegexNode.Beginning;
                 case 'G':
@@ -1507,24 +1503,28 @@ namespace System.Text.RegularExpressions {
          * a prescanner for deducing the slots used for
          * captures by doing a partial tokenization of the pattern.
          */
-        internal void CountCaptures() {
+        internal void CountCaptures() 
+        {
             char ch;
 
             NoteCaptureSlot(0, 0);
 
             _autocap = 1;
 
-            while (CharsRight() > 0) {
+            while (CharsRight() > 0) 
+            {
                 int pos = Textpos();
                 ch = MoveRightGetChar();
-                switch (ch) {
+                switch (ch) 
+                {
                     case '\\':
                         if (CharsRight() > 0)
                             MoveRight();
                         break;
 
                     case '#':
-                        if (UseOptionX()) {
+                        if (UseOptionX()) 
+                        {
                             MoveLeft();
                             ScanBlank();
                         }
@@ -1540,18 +1540,21 @@ namespace System.Text.RegularExpressions {
                         break;
 
                     case '(':
-                        if (CharsRight() >= 2 && RightChar(1) == '#' && RightChar() == '?') {
+                        if (CharsRight() >= 2 && RightChar(1) == '#' && RightChar() == '?') 
+                        {
                             MoveLeft();
                             ScanBlank();
                         } 
-                        else {
-                            
+                        else 
+                        {
                             PushOptions();
-                            if (CharsRight() > 0 && RightChar() == '?') {
+                            if (CharsRight() > 0 && RightChar() == '?') 
+                            {
                                 // we have (?...
                                 MoveRight();
 
-                                if (CharsRight() > 1 && (RightChar() == '<' || RightChar() == '\'')) {
+                                if (CharsRight() > 1 && (RightChar() == '<' || RightChar() == '\'')) 
+                                {
                                     // named group: (?<... or (?'...
 
                                     MoveRight();
@@ -1566,19 +1569,23 @@ namespace System.Text.RegularExpressions {
                                             NoteCaptureName(ScanCapname(), pos);
                                     }
                                 }
-                                else {
+                                else 
+                                {
                                     // (?...
 
                                     // get the options if it's an option construct (?cimsx-cimsx...)
                                     ScanOptions();
 
-                                    if (CharsRight() > 0) {
-                                        if (RightChar() == ')') {
+                                    if (CharsRight() > 0) 
+                                    {
+                                        if (RightChar() == ')') 
+                                        {
                                             // (?cimsx-cimsx)
                                             MoveRight();
                                             PopKeepOptions();
                                         }
-                                        else if (RightChar() == '(') {
+                                        else if (RightChar() == '(') 
+                                        {
                                             // alternation construct: (?(foo)yes|no)
                                             // ignore the next paren so we don't capture the condition
                                             _ignoreNextParen = true;
@@ -1589,7 +1596,8 @@ namespace System.Text.RegularExpressions {
                                     }
                                 }
                             }
-                            else {
+                            else 
+                            {
                                 if (!UseOptionN() && !_ignoreNextParen)
                                     NoteCaptureSlot(_autocap++, pos);
                             }
@@ -1606,14 +1614,17 @@ namespace System.Text.RegularExpressions {
         /*
          * Notes a used capture slot
          */
-        internal void NoteCaptureSlot(int i, int pos) {
-            if (!_caps.ContainsKey(i)) {
+        internal void NoteCaptureSlot(int i, int pos) 
+        {
+            if (!_caps.ContainsKey(i)) 
+            {
                 // the rhs of the hashtable isn't used in the parser
 
                 _caps.Add(i, pos);
                 _capcount++;
 
-                if (_captop <= i) {
+                if (_captop <= i) 
+                {
                     if (i == Int32.MaxValue)
                         _captop = i;
                     else
@@ -1625,17 +1636,16 @@ namespace System.Text.RegularExpressions {
         /*
          * Notes a used capture slot
          */
-        internal void NoteCaptureName(String name, int pos) {
-            if (_capnames == null) {
-#if SILVERLIGHT
-                _capnames = new Dictionary<String, Int32>();
-#else
-                _capnames = new Hashtable();
-#endif
-                _capnamelist = new List<String>();
+        internal void NoteCaptureName(string name, int pos) 
+        {
+            if (_capnames == null) 
+            {
+                _capnames = new Dictionary<string, int>();
+                _capnamelist = new List<string>();
             }
 
-            if (!_capnames.ContainsKey(name)) {
+            if (!_capnames.ContainsKey(name)) 
+            {
                 _capnames.Add(name, pos);
                 _capnamelist.Add(name);
             }
@@ -1644,11 +1654,8 @@ namespace System.Text.RegularExpressions {
         /*
          * For when all the used captures are known: note them all at once
          */
-#if SILVERLIGHT
-        internal void NoteCaptures(Dictionary<Int32, Int32> caps, int capsize, Dictionary<String, Int32> capnames) {
-#else
-        internal void NoteCaptures(Hashtable caps, int capsize, Hashtable capnames) {
-#endif
+        internal void NoteCaptures(Dictionary<int, int> caps, int capsize, Dictionary<string, int> capnames) 
+        {
             _caps = caps;
             _capsize = capsize;
             _capnames = capnames;
@@ -1657,9 +1664,12 @@ namespace System.Text.RegularExpressions {
         /*
          * Assigns unused slot numbers to the capture names
          */
-        internal void AssignNameSlots() {
-            if (_capnames != null) {
-                for (int i = 0; i < _capnamelist.Count; i++) {
+        internal void AssignNameSlots() 
+        {
+            if (_capnames != null) 
+            {
+                for (int i = 0; i < _capnamelist.Count; i++) 
+                {
                     while (IsCaptureSlot(_autocap))
                         _autocap++;
                     string name = _capnamelist[i];
@@ -1673,7 +1683,10 @@ namespace System.Text.RegularExpressions {
 
             // if the caps array has at least one gap, construct the list of used slots
 
-            if (_capcount < _captop) {
+            if (_capcount < _captop) 
+            {
+                //_capnumlist = _caps
+
                 _capnumlist = new Int32[_capcount];
                 int i = 0;
 
@@ -1692,11 +1705,7 @@ namespace System.Text.RegularExpressions {
 
                 if (_capnames == null) {
                     oldcapnamelist = null;
-#if SILVERLIGHT
-                    _capnames = new Dictionary<String, Int32>();
-#else
-                    _capnames = new Hashtable();
-#endif
+                    _capnames = new Dictionary<string, int>();
                     _capnamelist = new List<String>();
                     next = -1;
                 }
@@ -1784,12 +1793,10 @@ namespace System.Text.RegularExpressions {
             return(_options & RegexOptions.IgnorePatternWhitespace) != 0;
         }
 
-        /*
-         * True if E option enabling ECMAScript behavior is on.
-         */
-        internal bool UseOptionE() {
-            return(_options & RegexOptions.ECMAScript) != 0;
-        }
+        /// <summary>
+        /// True if E option enabling ECMAScript behavior is on. 
+        /// </summary>
+        internal bool EcmaScriptBehavior => (_options & RegexOptions.ECMAScript) != 0;
 
         internal const byte Q = 5;    // quantifier
         internal const byte S = 4;    // ordinary stoppper
@@ -1820,18 +1827,15 @@ namespace System.Text.RegularExpressions {
         /*
          * Returns true for those characters that terminate a string of ordinary chars.
          */
-        internal static bool IsStopperX(char ch) {
-            return(ch <= '|' && _category[ch] >= X);
-        }
+        internal static bool IsStopperX(char ch) => (ch <= '|' && _category[ch] >= X);
 
         /*
          * Returns true for those characters that begin a quantifier.
          */
-        internal static bool IsQuantifier(char ch) {
-            return(ch <= '{' && _category[ch] >= Q);
-        }
+        internal static bool IsQuantifier(char ch) => (ch <= '{' && _category[ch] >= Q);
 
-        internal bool IsTrueQuantifier() {
+        internal bool IsTrueQuantifier() 
+        {
             int nChars = CharsRight();
             if (nChars == 0)
                 return false;
@@ -1854,28 +1858,26 @@ namespace System.Text.RegularExpressions {
         /*
          * Returns true for whitespace.
          */
-        internal static bool IsSpace(char ch) {
-            return(ch <= ' ' && _category[ch] == X);
-        }
+        internal static bool IsSpace(char ch) => (ch <= ' ' && _category[ch] == X);
 
         /*
          * Returns true for chars that should be escaped.
          */
-        internal static bool IsMetachar(char ch) {
-            return(ch <= '|' && _category[ch] >= E);
-        }
+        internal static bool IsMetachar(char ch) => (ch <= '|' && _category[ch] >= E);
 
 
         /*
          * Add a string to the last concatenate.
          */
-        internal void AddConcatenate(int pos, int cch, bool isReplacement) {
+        internal void AddConcatenate(int pos, int cch, bool isReplacement) 
+        {
             RegexNode node;
 
             if (cch == 0)
                 return;
 
-            if (cch > 1) {
+            if (cch > 1)
+            {
                 String str = _pattern.Substring(pos, cch);
 
                 if (UseOptionI() && !isReplacement) {
@@ -1891,7 +1893,8 @@ namespace System.Text.RegularExpressions {
 
                 node = new RegexNode(RegexNode.Multi, _options, str);
             }
-            else {
+            else
+            {
                 char ch = _pattern[pos];
 
                 if (UseOptionI() && !isReplacement)
@@ -1935,14 +1938,13 @@ namespace System.Text.RegularExpressions {
         /*
          * True if the group stack is empty.
          */
-        internal bool EmptyStack() {
-            return _stack == null;
-        }
+        internal bool IsStackEmpty => _stack == null;
 
         /*
          * Start a new round for the parser state (in response to an open paren or string start)
          */
-        internal void StartGroup(RegexNode openGroup) {
+        internal void StartGroup(RegexNode openGroup)
+        {
             _group = openGroup;
             _alternation = new RegexNode(RegexNode.Alternate, _options);
             _concatenation = new RegexNode(RegexNode.Concatenate, _options);
@@ -1967,7 +1969,8 @@ namespace System.Text.RegularExpressions {
         /*
          * Finish the current quantifiable (when a quantifier is not found or is not possible)
          */
-        internal void AddConcatenate() {
+        internal void AddConcatenate() 
+        {
             // The first (| inside a Testgroup group goes directly to the group
 
             _concatenation.AddChild(_unit);
@@ -1977,7 +1980,8 @@ namespace System.Text.RegularExpressions {
         /*
          * Finish the current quantifiable (when a quantifier is found)
          */
-        internal void AddConcatenate(bool lazy, int min, int max) {
+        internal void AddConcatenate(bool lazy, int min, int max)
+        {
             _concatenation.AddChild(_unit.MakeQuantifier(lazy, min, max));
             _unit = null;
         }
@@ -2033,14 +2037,17 @@ namespace System.Text.RegularExpressions {
         /*
          * Finish the current group (in response to a ')' or end)
          */
-        internal void AddGroup() {
-            if (_group.Type() == RegexNode.Testgroup || _group.Type() == RegexNode.Testref) {
+        internal void AddGroup() 
+        {
+            if (_group.Type() == RegexNode.Testgroup || _group.Type() == RegexNode.Testref) 
+            {
                 _group.AddChild(_concatenation.ReverseLeft());
 
                 if (_group.Type() == RegexNode.Testref && _group.ChildCount() > 2 || _group.ChildCount() > 3)
                     throw MakeException(SR.GetString(SR.TooManyAlternates));
             }
-            else {
+            else 
+            {
                 _alternation.AddChild(_concatenation.ReverseLeft());
                 _group.AddChild(_alternation);
             }
@@ -2051,14 +2058,16 @@ namespace System.Text.RegularExpressions {
         /*
          * Saves options on a stack.
          */
-        internal void PushOptions() {
+        internal void PushOptions() 
+        {
             _optionsStack.Add(_options);
         }
 
         /*
          * Recalls options from the stack.
          */
-        internal void PopOptions() {
+        internal void PopOptions() 
+        {
             _options = _optionsStack[_optionsStack.Count - 1];
             _optionsStack.RemoveAt(_optionsStack.Count - 1);
         }
@@ -2066,7 +2075,8 @@ namespace System.Text.RegularExpressions {
         /*
          * True if options stack is empty.
          */
-        internal bool EmptyOptionsStack() {
+        internal bool EmptyOptionsStack() 
+        {
             return(_optionsStack.Count == 0);
         }
 
@@ -2080,23 +2090,24 @@ namespace System.Text.RegularExpressions {
         /*
          * Fills in an ArgumentException
          */
-        internal ArgumentException MakeException(String message) {
-            //Margus:
-            //return new ArgumentException(SR.GetString(SR.MakeException, _pattern, message));
+        internal ArgumentException MakeException(String message) 
+        {
             return new ArgumentException(message);
         }
 
         /*
          * Returns the current parsing position.
          */
-        internal int Textpos() {
+        internal int Textpos() 
+        {
             return _currentPos;
         }
 
         /*
          * Zaps to a specific parsing position.
          */
-        internal void Textto(int pos) {
+        internal void Textto(int pos) 
+        {
             _currentPos = pos;
         }
 
@@ -2110,46 +2121,46 @@ namespace System.Text.RegularExpressions {
         /*
          * Moves the current position to the right. 
          */
-        internal void MoveRight() {
+        internal void MoveRight() 
+        {
             MoveRight(1);
         }
 
-        internal void MoveRight(int i) {
+        internal void MoveRight(int i) 
+        {
             _currentPos += i;
         }
 
         /*
          * Moves the current parsing position one to the left.
          */
-        internal void MoveLeft() {
+        internal void MoveLeft() 
+        {
             --_currentPos;
         }
 
         /*
          * Returns the char left of the current parsing position.
          */
-        internal char CharAt(int i) {
+        internal char CharAt(int i) 
+        {
             return _pattern[i];
         }
 
-        /*
-         * Returns the char right of the current parsing position.
-         */
-        internal char RightChar() {
-            return _pattern[_currentPos];
-        }
 
         /*
          * Returns the char i chars right of the current parsing position.
          */
-        internal char RightChar(int i) {
+        internal char RightChar(int i = 0) 
+        {
             return _pattern[_currentPos + i];
         }
 
         /*
          * Number of characters to the right of the current parsing position.
          */
-        internal int CharsRight() {
+        internal int CharsRight() 
+        {
             return _pattern.Length - _currentPos;
         }
     }

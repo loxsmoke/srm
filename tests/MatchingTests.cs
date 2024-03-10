@@ -91,9 +91,7 @@ namespace Microsoft.SRM.Tests
             var sr = new Regex(@"^abc[\0-\xFF]+$");
 
             // Create abc plus a random string
-            byte[] bytes = new byte[1000];
-            RNGCryptoServiceProvider rnd = new RNGCryptoServiceProvider();
-            rnd.GetBytes(bytes);
+            byte[] bytes = RandomNumberGenerator.GetBytes(1000);
             char[] cs = Array.ConvertAll(bytes, b => (char)b);
             string s = new string(cs);
             var input = "abc" + s;

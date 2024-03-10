@@ -526,9 +526,8 @@ namespace System.Text.RegularExpressions {
             return StripEnation(RegexNode.Empty);
         }
 
-        internal RegexNode MakeQuantifier(bool lazy, int min, int max) {
-            RegexNode result;
-
+        internal RegexNode MakeQuantifier(bool lazy, int min, int max)
+        {
             if (min == 0 && max == 0)
                 return new RegexNode(RegexNode.Empty, _options);
 
@@ -544,9 +543,11 @@ namespace System.Text.RegularExpressions {
                     return this;
 
                 default:
-                    result = new RegexNode(lazy ? RegexNode.Lazyloop : RegexNode.Loop, _options, min, max);
-                    result.AddChild(this);
-                    return result;
+                    {
+                        var result = new RegexNode(lazy ? RegexNode.Lazyloop : RegexNode.Loop, _options, min, max);
+                        result.AddChild(this);
+                        return result;
+                    }
             }
         }
 

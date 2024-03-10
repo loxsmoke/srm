@@ -19,11 +19,8 @@ namespace System.Text.RegularExpressions {
          * the constructor takes a RegexNode which is a concatenation
          * of constant strings and backreferences.
          */
-#if SILVERLIGHT
-        internal RegexReplacement(String rep, RegexNode concat, Dictionary<Int32, Int32> _caps) {
-#else
-        internal RegexReplacement(String rep, RegexNode concat, Hashtable _caps) {
-#endif
+        internal RegexReplacement(String rep, RegexNode concat, Dictionary<int, int> _caps) 
+        {
             StringBuilder sb;
             List<String> strings;
             List<Int32> rules;

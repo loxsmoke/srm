@@ -55,7 +55,10 @@ namespace Microsoft.SRM
         /// <param name="endat">end position in the input, -1 means that the value is unspecified and taken to be input.Length-1</param>
         public List<Match> Matches(string input, int limit = 0, int startat = 0, int endat = -1)
             => matcher.Matches(input, limit, startat, endat);
-        
+
+        public PartialMatch? PartialMatch(string input, int startat = 0, int endat = -1)
+            => matcher.PartialMatch(input, startat, endat);
+
         /// <summary>
         /// Serialize this symbolic regex matcher to the given file.
         /// If formatter is null then an instance of 

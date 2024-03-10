@@ -16,13 +16,7 @@ namespace Microsoft.SRM
         [NonSerialized]
         internal BST bst;
 
-        internal BST Tree
-        {
-            get
-            {
-                return bst;
-            }
-        }
+        internal BST Tree => bst;
 
         public DecisionTree(int[] precomputed, BST bst)
         {
@@ -133,37 +127,13 @@ namespace Microsoft.SRM
             //[NonSerialized]
             BST right;
 
-            internal BST Left
-            {
-                get
-                {
-                    return left;
-                }
-            }
+            internal BST Left => left;
 
-            internal BST Right
-            {
-                get
-                {
-                    return right;
-                }
-            }
+            internal BST Right => right;
 
-            internal bool IsLeaf
-            {
-                get
-                {
-                    return left == null;
-                }
-            }
+            internal bool IsLeaf => left == null;
 
-            internal int Node
-            {
-                get
-                {
-                    return node;
-                }
-            }
+            internal int Node => node;
 
             internal int Find(int charCode)
             {
@@ -182,10 +152,7 @@ namespace Microsoft.SRM
                 this.right = right;
             }
 
-            public override string ToString()
-            {
-                return this.Serialize();
-            }
+            public override string ToString() => this.Serialize();
 
             #region custom serialization
             void SerializeHelper(StringBuilder sb)
@@ -259,13 +226,7 @@ namespace Microsoft.SRM
                 this.solver = solver;
             }
 
-            internal bool IsEmpty
-            {
-                get
-                {
-                    return Array.TrueForAll(blocks, b => b.IsEmpty);
-                }
-            }
+            internal bool IsEmpty => Array.TrueForAll(blocks, b => b.IsEmpty);
 
             internal int GetSigletonId()
             {
@@ -310,17 +271,7 @@ namespace Microsoft.SRM
             bst = BST.Deserialize(info.GetString("b"));
         }
 
-        string SerializePrecomputed()
-        {
-            string s = "";
-            for (int i=0; i < precomputed.Length; i++)
-            {
-                if (i > 0)
-                    s += ",";
-                s += precomputed[i].ToString();
-            }
-            return s;
-        }
+        string SerializePrecomputed() => string.Join(",", precomputed);
 
         static int[] DeserializePrecomputed(string s)
         {

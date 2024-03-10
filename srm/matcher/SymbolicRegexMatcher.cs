@@ -91,31 +91,25 @@ namespace Microsoft.SRM
         /// Maps each character into a partition id in the range 0..K-1.
         /// </summary>
         [NonSerialized]
-        DecisionTree dt;
-
-        /// <summary>
-        /// Used only by IsMatch and if A2 is used.
-        /// </summary>
-        [NonSerialized]
-        int q0_A2 = 0;
+        DecisionTree decisionTree;
 
         /// <summary>
         /// Initial state of A1 (0 is not used).
         /// </summary>
         [NonSerialized]
-        int q0_A1 = 1;
+        const int InitialStateA1 = 1;
 
         /// <summary>
         /// Initial state of Ar (0 is not used).
         /// </summary>
         [NonSerialized]
-        int q0_Ar = 2;
+        const int InitialStateAr = 2;
 
         /// <summary>
         /// Initial state of A (0 is not used).
         /// </summary>
         [NonSerialized]
-        int q0_A = 3;
+        const int InitialStateA = 3;
 
         /// <summary>
         /// Next available state id.
@@ -161,35 +155,17 @@ namespace Microsoft.SRM
         /// <summary>
         /// Main pattern of the matcher
         /// </summary>
-        public SymbolicRegexNode<S> Pattern
-        {
-            get
-            {
-                return this.A;
-            }
-        }
+        public SymbolicRegexNode<S> Pattern => A;
 
         /// <summary>
         /// Reverse pattern of the matcher
         /// </summary>
-        public SymbolicRegexNode<S> ReversePattern
-        {
-            get
-            {
-                return this.Ar;
-            }
-        }
+        public SymbolicRegexNode<S> ReversePattern => Ar;
 
         /// <summary>
         /// Dot star in front of the pattern of the matcher
         /// </summary>
-        public SymbolicRegexNode<S> DotStarPattern
-        {
-            get
-            {
-                return this.A1;
-            }
-        }
+        public SymbolicRegexNode<S> DotStarPattern => A1;
 
         /// <summary>
         /// Set of elements that matter as first element of A. 
@@ -270,14 +246,6 @@ namespace Microsoft.SRM
         /// </summary>
         [NonSerialized]
         SymbolicRegexNode<S> A1;
-
-        /// <summary>
-        /// Variant of A1 for matching.
-        /// In A2 anchors have been removed. 
-        /// Used only by IsMatch and when A contains anchors.
-        /// </summary>
-        [NonSerialized]
-        SymbolicRegexNode<S> A2 = null;
 
         /// <summary>
         /// Initialized to atoms.Length.
@@ -441,7 +409,7 @@ namespace Microsoft.SRM
             this.builder = new SymbolicRegexBuilder<S>(solver);
 
             this.atoms = builder.solver.GetPartition();
-            this.dt = ((BVAlgebraBase)builder.solver).dtree;
+            this.decisionTree = ((BVAlgebraBase)builder.solver).dtree;
 
             A = builder.Deserialize(info.GetString("A"));
             this.StateLimit = info.GetInt32("StateLimit");
@@ -462,12 +430,12 @@ namespace Microsoft.SRM
             this.A_prefixUTF8 = System.Text.UnicodeEncoding.UTF8.GetBytes(this.A_prefix);
 
             this.A_fixedPrefix_ignoreCase = info.GetBoolean("A_fixedPrefix_ignoreCase");
-            this.A1_skipState = DeltaPlus(A_prefix, q0_A1, out tmp);
+            this.A1_skipState = DeltaPlus(A_prefix, InitialStateA1, out tmp);
             this.A1_skipStateRegex = tmp;
 
             this.Ar_prefix_array = (S[])info.GetValue("Ar_prefix_array", typeof(S[]));
             this.Ar_prefix = StringUtility.DeserializeStringFromCharCodeSequence(info.GetString("Ar_prefix"));
-            this.Ar_skipState = DeltaPlus(Ar_prefix, q0_Ar, out tmp);
+            this.Ar_skipState = DeltaPlus(Ar_prefix, InitialStateAr, out tmp);
             this.Ar_skipStateRegex = tmp;
 
             InitializeVectors();
@@ -477,10 +445,7 @@ namespace Microsoft.SRM
         /// Parse a symbolic regex from its serialized form.
         /// </summary>
         /// <param name="symbolicregex">serialized form of a symbolic regex</param>
-        public SymbolicRegexNode<S> Parse(string symbolicregex)
-        {
-            return builder.Deserialize(symbolicregex);
-        }
+        public SymbolicRegexNode<S> Parse(string symbolicregex) => builder.Deserialize(symbolicregex);
 
         #endregion
 
@@ -493,22 +458,20 @@ namespace Microsoft.SRM
             this.StartSetSizeLimit = startSetSizeLimit;
             this.builder = sr.builder;
             this.StateLimit = StateLimit;
-            if (builder.solver is BV64Algebra)
+            if (builder.solver is BV64Algebra bva64)
             {
-                BV64Algebra bva = builder.solver as BV64Algebra;
-                atoms = bva.atoms as S[];
-                dt = bva.dtree;
+                atoms = bva64.atoms as S[];
+                decisionTree = bva64.dtree;
             }
-            else if (builder.solver is BVAlgebra)
+            else if (builder.solver is BVAlgebra bva)
             {
-                BVAlgebra bva = builder.solver as BVAlgebra;
                 atoms = bva.atoms as S[];
-                dt = bva.dtree;
+                decisionTree = bva.dtree;
             }
-            else if (builder.solver is CharSetSolver)
+            else if (builder.solver is CharSetSolver solverSet)
             {
                 atoms = minterms as S[];
-                dt = DecisionTree.Create(builder.solver as CharSetSolver, minterms);
+                decisionTree = DecisionTree.Create(solverSet, minterms);
             }
             else
             {
@@ -528,12 +491,12 @@ namespace Microsoft.SRM
             this.A_prefix = A.GetFixedPrefix(css, out this.A_fixedPrefix_ignoreCase);
             this.A_prefixUTF8 = System.Text.UnicodeEncoding.UTF8.GetBytes(this.A_prefix);
 
-            this.A1_skipState = DeltaPlus(A_prefix, q0_A1, out tmp);
+            this.A1_skipState = DeltaPlus(A_prefix, InitialStateA1, out tmp);
             this.A1_skipStateRegex = tmp;
 
             this.Ar_prefix_array = Ar.GetPrefix();
             this.Ar_prefix = new string(Array.ConvertAll(this.Ar_prefix_array, x => (char)css.GetMin(builder.solver.ConvertToCharSet(css, x))));
-            this.Ar_skipState = DeltaPlus(Ar_prefix, q0_Ar, out tmp);
+            this.Ar_skipState = DeltaPlus(Ar_prefix, InitialStateAr, out tmp);
             this.Ar_skipStateRegex = tmp;
 
             InitializeVectors();
@@ -545,40 +508,40 @@ namespace Microsoft.SRM
             this.A_containsLazyLoop = this.A.CheckIfContainsLazyLoop();
             this.Ar = this.A.Reverse();
             this.A1 = this.builder.MkConcat(this.builder.dotStar, this.A);
-            this.regex2state[A1] = this.q0_A1;
-            this.regex2state[Ar] = this.q0_Ar;
-            this.regex2state[A] = this.q0_A;
+            this.regex2state[A1] = InitialStateA1;
+            this.regex2state[Ar] = InitialStateAr;
+            this.regex2state[A] = InitialStateA;
             this.K = this.atoms.Length;
             this.delta = new int[this.K * this.StateLimit];
             this.state2regex = new SymbolicRegexNode<S>[this.StateLimit];
-            if (this.q0_A1 < this.StateLimit)
+            if (InitialStateA1 < this.StateLimit)
             {
-                this.state2regex[this.q0_A1] = this.A1;
+                this.state2regex[InitialStateA1] = this.A1;
             }
             else
             {
-                this.state2regexExtra[this.q0_A1] = this.A1;
-                this.deltaExtra[this.q0_A1] = new int[this.K];
+                this.state2regexExtra[InitialStateA1] = this.A1;
+                this.deltaExtra[InitialStateA1] = new int[this.K];
             }
 
-            if (this.q0_Ar < this.StateLimit)
+            if (InitialStateAr < this.StateLimit)
             {
-                this.state2regex[this.q0_Ar] = this.Ar;
+                this.state2regex[InitialStateAr] = this.Ar;
             }
             else
             {
-                this.state2regexExtra[this.q0_Ar] = this.Ar;
-                this.deltaExtra[this.q0_Ar] = new int[this.K];
+                this.state2regexExtra[InitialStateAr] = this.Ar;
+                this.deltaExtra[InitialStateAr] = new int[this.K];
             }
 
-            if (this.q0_A < this.StateLimit)
+            if (InitialStateA < this.StateLimit)
             {
-                this.state2regex[this.q0_A] = this.A;
+                this.state2regex[InitialStateA] = this.A;
             }
             else
             {
-                this.state2regexExtra[this.q0_A] = this.A;
-                this.deltaExtra[this.q0_A] = new int[this.K];
+                this.state2regexExtra[InitialStateA] = this.A;
+                this.deltaExtra[InitialStateA] = new int[this.K];
             }
         }
 
@@ -612,29 +575,27 @@ namespace Microsoft.SRM
                 regex = (q < StateLimit ? state2regex[q] : state2regexExtra[q]);
                 return q;
             }
-            else
+
+            q = DeltaBorder(BorderSymbol.Beg, q, out _);
+
+            for (int i = 0; i < input.Length; i++)
             {
-                q = DeltaBorder(BorderSymbol.Beg, q, out _);
+                var c = input[i];
 
-                for (int i = 0; i < input.Length; i++)
+                int p;
+                if (c == 10)
                 {
-                    var c = input[i];
-
-                    int p;
-                    if (c == 10)
-                    {
-                        p = DeltaBorder(BorderSymbol.EOL, q, out _);
-                        p = Delta(10, p, out _);
-                        p = DeltaBorder(BorderSymbol.BOL, p, out _);
-                    }
-                    else
-                        p = Delta(c, q, out _);
-
-                    q = p;
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out _);
+                    p = Delta(10, p, out _);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out _);
                 }
-                regex = (q < StateLimit ? state2regex[q] : state2regexExtra[q]);
-                return q;
+                else
+                    p = Delta(c, q, out _);
+
+                q = p;
             }
+            regex = (q < StateLimit ? state2regex[q] : state2regexExtra[q]);
+            return q;
         }
 
         /// <summary>
@@ -643,24 +604,24 @@ namespace Microsoft.SRM
         /// This is the purpose of the MethodImpl(MethodImplOptions.AggressiveInlining) attribute.
         /// </summary>
         /// <param name="c">input character</param>
-        /// <param name="q">state id of source regex</param>
+        /// <param name="state">state id of source regex</param>
         /// <param name="regex">target regex</param>
         /// <returns>state id of target regex</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        int Delta(int c, int q, out SymbolicRegexNode<S> regex)
+        int Delta(int c, int state, out SymbolicRegexNode<S> regex)
         {
             int p;
             #region cut-n-paste for explcit inlining
-            int atom_id = (dt.precomputed.Length > c ? dt.precomputed[c] : dt.bst.Find(c));
+            int atom_id = (decisionTree.precomputed.Length > c ? decisionTree.precomputed[c] : decisionTree.bst.Find(c));
             S atom = atoms[atom_id];
-            if (q < StateLimit)
+            if (state < StateLimit)
             {
                 #region use delta
-                int offset = (q * K) + atom_id;
+                int offset = (state * K) + atom_id;
                 p = delta[offset];
                 if (p == 0)
                 {
-                    CreateNewTransition(q, atom, offset, out p, out regex);
+                    CreateNewTransition(state, atom, offset, out p, out regex);
                 }
                 else
                 {
@@ -671,11 +632,11 @@ namespace Microsoft.SRM
             else
             {
                 #region use deltaExtra
-                int[] q_trans = deltaExtra[q];
+                int[] q_trans = deltaExtra[state];
                 p = q_trans[atom_id];
                 if (p == 0)
                 {
-                    CreateNewTransitionExtra(q, atom_id, atom, q_trans, out p, out regex);
+                    CreateNewTransitionExtra(state, atom_id, atom, q_trans, out p, out regex);
                 }
                 else
                 {
@@ -955,14 +916,11 @@ namespace Microsoft.SRM
             {
                 return regex.lower;
             }
-            else if (regex.kind == SymbolicRegexKind.Or)
+            if (regex.kind == SymbolicRegexKind.Or)
             {
                 return regex.alts.watchdog;
             }
-            else
-            {
-                return -1;
-            }
+            return -1;
         }
 
         /// <summary>
@@ -1010,7 +968,7 @@ namespace Microsoft.SRM
                 //int q = this.q0_A2;
                 //SymbolicRegexNode<S> regex = this.A2;
 
-                int q = this.q0_A;
+                int q = InitialStateA;
                 SymbolicRegexNode<S> regex = this.A;
                 int i = startat;
 
@@ -1024,9 +982,9 @@ namespace Microsoft.SRM
 
                     if (c == 10)
                     {
-                        p = DeltaBorder(BorderSymbol.EOL, q, out _);
+                        p = DeltaBorder(BorderSymbol.EndOfLine, q, out _);
                         p = Delta(10, p, out _);
-                        p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                        p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                     }
                     else
                         p = Delta(c, q, out regex);
@@ -1085,14 +1043,14 @@ namespace Microsoft.SRM
         {
             int k = input.Length;
             int i_end = k;
-            int q = q0_A;
+            int q = InitialStateA;
             SymbolicRegexNode<S> regex;
             if (i == 0)
                 // start of input
                 q = DeltaBorder(BorderSymbol.Beg, q, out _);
             else if (input[i - 1] == '\n')
                 // start of a line
-                q = DeltaBorder(BorderSymbol.BOL, q, out _);
+                q = DeltaBorder(BorderSymbol.StartOfLine, q, out _);
             while (i < k)
             {
                 int c = input[i];
@@ -1100,13 +1058,13 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.IsNullable)
                         //nullable due to $ anchor
                         //end position is therefore the prior character if it exists
                         i_end = (i > 0 ? i - 1 : 0);
                     p = Delta(10, p, out regex);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -1148,7 +1106,7 @@ namespace Microsoft.SRM
         /// <returns></returns>
         private int FindStartPosition(string input, int i, int match_start_boundary)
         {
-            int q = q0_Ar;
+            int q = InitialStateAr;
             SymbolicRegexNode<S> regex = null;
             //A_r may have a fixed sequence
             if (this.Ar_prefix_array.Length > 0)
@@ -1181,7 +1139,7 @@ namespace Microsoft.SRM
                 q = DeltaBorder(BorderSymbol.End, q, out _);
             else if (i > 0 && input[i+1] == '\n')
                 // at the end of a line
-                q = DeltaBorder(BorderSymbol.EOL, q, out _);
+                q = DeltaBorder(BorderSymbol.EndOfLine, q, out _);
 
             while (i >= match_start_boundary)
             {
@@ -1193,11 +1151,11 @@ namespace Microsoft.SRM
                 if (c == 10)
                 {
                     //going backwards, first consume StartLine because reversal keeps the anchors in place
-                    p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, q, out regex);
                     if (regex.IsNullable)
                         last_start = i + 1;
                     p = Delta(10, p, out _);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -1242,10 +1200,10 @@ namespace Microsoft.SRM
         /// <param name="input">given input string</param>
         /// <param name="i">start position</param>
         /// <param name="i_q0">last position the initial state of A1 was visited</param>
-        /// <param name="k">input length or bounded input length</param>
-        private int FindFinalStatePosition(string input, int k, int i, out int i_q0, out int watchdog)
+        /// <param name="length">input length or bounded input length</param>
+        private int FindFinalStatePosition(string input, int length, int i, out int i_q0, out int watchdog)
         {
-            int q = q0_A1;
+            int q = InitialStateA1;
             int i_q0_A1 = i;
 
             SymbolicRegexNode<S> regex = null;
@@ -1255,9 +1213,9 @@ namespace Microsoft.SRM
             if (i == 0)
                 q = DeltaBorder(BorderSymbol.Beg, q, out regex);
 
-            while (i < k)
+            while (i < length)
             {
-                if (q == q0_A1)
+                if (q == InitialStateA1)
                 {
                     i = IndexOfStartset(input, i);
 
@@ -1265,7 +1223,7 @@ namespace Microsoft.SRM
                     {
                         i_q0 = i_q0_A1;
                         watchdog = -1;
-                        return k;
+                        return length;
                     }
                     i_q0_A1 = i;
                 }
@@ -1275,7 +1233,7 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to endline anchor
@@ -1292,7 +1250,7 @@ namespace Microsoft.SRM
                         //but the newline character is used in the pattern
                         break;
                     }
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to startline anchor
@@ -1305,7 +1263,7 @@ namespace Microsoft.SRM
                         //p is a deadend state so any further search is meaningless
                         i_q0 = i_q0_A1;
                         watchdog = -1;
-                        return k;
+                        return length;
                     }
                 }
                 else
@@ -1322,7 +1280,7 @@ namespace Microsoft.SRM
                         //p is a deadend state so any further search is meaningless
                         i_q0 = i_q0_A1;
                         watchdog = -1;
-                        return k;
+                        return length;
                     }
                 }
 
@@ -1330,7 +1288,7 @@ namespace Microsoft.SRM
                 q = p;
                 i += 1;
             }
-            if (i == k)
+            if (i == length)
             {
                 q = DeltaBorder(BorderSymbol.End, q, out regex);
                 if (regex.IsNullable)
@@ -1348,17 +1306,16 @@ namespace Microsoft.SRM
         /// <param name="input">given input string</param>
         /// <param name="i">start position</param>
         /// <param name="i_q0">last position the initial state of A1 was visited</param>
-        /// <param name="k">input length or bounded input length</param>
-        private int FindFinalStatePositionOpt(string input, int k, int i, out int i_q0, out int watchdog)
+        /// <param name="end">input length or bounded input length</param>
+        private int FindFinalStatePositionOpt(string input, int end, int i, out int i_q0, out int watchdog)
         {
-            int q = q0_A1;
+            int state = InitialStateA1;
             int i_q0_A1 = i;
-            var prefix = this.A_prefix;
             //it is important to use Ordinal/OrdinalIgnoreCase to avoid culture dependent semantics of IndexOf
             StringComparison comparison = (this.A_fixedPrefix_ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
             SymbolicRegexNode<S> regex = null;
             watchdog = -1;
-            while (i < k)
+            while (i < end)
             {
                 // ++++ the following prefix optimization can be commented out without affecting correctness ++++
                 // but this optimization has a huge perfomance boost when fixed prefix exists .... in the order of 10x
@@ -1367,18 +1324,17 @@ namespace Microsoft.SRM
                 //stay in the initial state if the prefix does not match
                 //thus advance the current position to the 
                 //first position where the prefix does match
-                if (q == q0_A1)
+                if (state == InitialStateA1)
                 {
                     i_q0_A1 = i;
 
-                    //i = IndexOf(input, prefix, i, this.A_fixedPrefix_ignoreCase);
-                    i = input.IndexOf(prefix, i, comparison);
+                    i = input.IndexOf(A_prefix, i, comparison);
 
                     if (i == -1)
                     {
                         //if a matching position does not exist then IndexOf returns -1
                         //so set i = k to match the while loop behavior
-                        i = k;
+                        i = end;
                         break;
                     }
                     else
@@ -1389,11 +1345,11 @@ namespace Microsoft.SRM
                         //for (int j = 0; j < prefix.Length; j++)
                         //    q = Delta(prefix[j], q, out regex);
                         // ---
-                        q = this.A1_skipState;
+                        state = this.A1_skipState;
                         regex = this.A1_skipStateRegex;
 
                         //skip the prefix
-                        i = i + prefix.Length;
+                        i += A_prefix.Length;
                         if (regex.isNullable)
                         {
                             i_q0 = i_q0_A1;
@@ -1401,15 +1357,15 @@ namespace Microsoft.SRM
                             //return the last position of the match
                             return i - 1;
                         }
-                        if (i == k)
+                        if (i == end)
                         {
                             i_q0 = i_q0_A1;
                             watchdog = -1;
                             //check if there is an End anchor
-                            DeltaBorder(BorderSymbol.End, q, out regex);
+                            DeltaBorder(BorderSymbol.End, state, out regex);
                             if (regex.IsNullable)
-                                return k - 1;
-                            return k;
+                                return end - 1;
+                            return end;
                         }
                     }
                 }
@@ -1422,7 +1378,7 @@ namespace Microsoft.SRM
                 #region compute one step but extended with line anchors if c = '\n'
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, state, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to endline anchor
@@ -1439,7 +1395,7 @@ namespace Microsoft.SRM
                         //but the newline character is used in the pattern
                         break;
                     }
-                    p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, state, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to startline anchor
@@ -1451,12 +1407,12 @@ namespace Microsoft.SRM
                     {
                         //p is a deadend state so any further search is meaningless
                         i_q0 = i_q0_A1;
-                        return k;
+                        return end;
                     }
                 }
                 else
                 {
-                    p = Delta(c, q, out regex);
+                    p = Delta(c, state, out regex);
 
                     if (regex.isNullable)
                     {
@@ -1467,21 +1423,21 @@ namespace Microsoft.SRM
                     {
                         //p is a deadend state so any further search is meaningless
                         i_q0 = i_q0_A1;
-                        return k;
+                        return end;
                     }
                 }
                 #endregion
 
                 //continue from the target state
-                q = p;
+                state = p;
                 i += 1;
             }
-            if (i == k)
+            if (i == end)
             {
-                q = DeltaBorder(BorderSymbol.End, q, out regex);
+                state = DeltaBorder(BorderSymbol.End, state, out regex);
                 if (regex.IsNullable)
                     //match occurred due to end anchor
-                    i = i - 1;
+                    i--;
             }
             i_q0 = i_q0_A1;
             watchdog = (regex == null ? -1 : this.GetWatchdog(regex));
@@ -1585,11 +1541,11 @@ namespace Microsoft.SRM
         /// <returns></returns>
         unsafe private int FindFinalStatePosition_(char* inputp, int k, int i, out int i_q0)
         {
-            int q = q0_A1;
+            int q = InitialStateA1;
             int i_q0_A1 = i;
             while (i < k)
             {
-                if (q == q0_A1)
+                if (q == InitialStateA1)
                 {
                     if (this.A_StartSet_Vec != null && A_StartSet_Vec.Length == 1)
                     {
@@ -1615,7 +1571,7 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to endline anchor
@@ -1632,7 +1588,7 @@ namespace Microsoft.SRM
                         //but the newline character is used in the pattern
                         break;
                     }
-                    p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, q, out regex);
                     if (regex.isNullable)
                     {
                         //match has been found due to startline anchor
@@ -1677,7 +1633,7 @@ namespace Microsoft.SRM
         /// </summary>
         unsafe private int FindFinalStatePositionOpt_(string input, int i, out int i_q0)
         {
-            int q = q0_A1;
+            int q = InitialStateA1;
             int i_q0_A1 = i;
             var A_prefix_length = this.A_prefix.Length;
             //it is important to use Ordinal/OrdinalIgnoreCase to avoid culture dependent semantics of IndexOf
@@ -1692,7 +1648,7 @@ namespace Microsoft.SRM
                     //stay in the initial state if the prefix does not match
                     //thus advance the current position to the 
                     //first position where the prefix does match
-                    if (q == q0_A1)
+                    if (q == InitialStateA1)
                     {
                         i_q0_A1 = i;
 
@@ -1741,7 +1697,7 @@ namespace Microsoft.SRM
 
                     if (c == 10)
                     {
-                        p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                        p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                         if (regex.isNullable)
                         {
                             //match has been found due to endline anchor
@@ -1758,7 +1714,7 @@ namespace Microsoft.SRM
                             //but the newline character is used in the pattern
                             break;
                         }
-                        p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                        p = DeltaBorder(BorderSymbol.StartOfLine, q, out regex);
                         if (regex.isNullable)
                         {
                             //match has been found due to startline anchor
@@ -1807,7 +1763,7 @@ namespace Microsoft.SRM
         /// <returns></returns>
         unsafe private int FindStartPosition_(char* input, int input_length, int i, int match_start_boundary)
         {
-            int q = q0_Ar;
+            int q = InitialStateAr;
             SymbolicRegexNode<S> regex = null;
             //A_r may have a fixed sequence
             if (this.Ar_prefix_array.Length > 0)
@@ -1841,7 +1797,7 @@ namespace Microsoft.SRM
                 q = DeltaBorder(BorderSymbol.End, q, out _);
             else if (i > 0 && input[i + 1] == '\n')
                 // at the end of a line
-                q = DeltaBorder(BorderSymbol.EOL, q, out _);
+                q = DeltaBorder(BorderSymbol.EndOfLine, q, out _);
 
             while (i >= match_start_boundary)
             {
@@ -1854,11 +1810,11 @@ namespace Microsoft.SRM
                 if (c == 10)
                 {
                     //going backwards, first consume StartLine because reversal keeps the anchors in place
-                    p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, q, out regex);
                     if (regex.IsNullable)
                         last_start = i + 1;
                     p = Delta(10, p, out _);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -1896,14 +1852,14 @@ namespace Microsoft.SRM
         unsafe private int FindEndPosition_(char* input, int k, int i)
         {
             int i_end = k;
-            int q = q0_A;
+            int q = InitialStateA;
             SymbolicRegexNode<S> regex;
             if (i == 0)
                 // start of input
                 q = DeltaBorder(BorderSymbol.Beg, q, out _);
             else if (input[i - 1] == '\n')
                 // start of a line
-                q = DeltaBorder(BorderSymbol.BOL, q, out _);
+                q = DeltaBorder(BorderSymbol.StartOfLine, q, out _);
 
             while (i < k)
             {
@@ -1912,13 +1868,13 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.IsNullable)
                         //nullable due to $ anchor
                         //end position is therefore the prior character if it exists
                         i_end = (i > 0 ? i - 1 : 0);
                     p = Delta(10, p, out regex);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -2191,7 +2147,7 @@ namespace Microsoft.SRM
         {
             int k = input.Length;
             int i_end = k;
-            int q = q0_A;
+            int q = InitialStateA;
             int step = 0;
             int codepoint = 0;
             SymbolicRegexNode<S> regex;
@@ -2200,7 +2156,7 @@ namespace Microsoft.SRM
                 q = DeltaBorder(BorderSymbol.Beg, q, out _);
             else if (input[i - 1] == '\n')
                 // start of a line
-                q = DeltaBorder(BorderSymbol.BOL, q, out _);
+                q = DeltaBorder(BorderSymbol.StartOfLine, q, out _);
 
             while (i < k)
             {
@@ -2243,13 +2199,13 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.IsNullable)
                         //nullable due to $ anchor
                         //end position is therefore the prior character if it exists
                         i_end = (i > 0 ? i - 1 : 0);
                     p = Delta(10, p, out _);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -2296,7 +2252,7 @@ namespace Microsoft.SRM
         /// <returns></returns>
         private int FindStartPositionUTF8(byte[] input, int i, ref int surrogate_codepoint, int match_start_boundary)
         {
-            int q = q0_Ar;
+            int q = InitialStateAr;
             SymbolicRegexNode<S> regex = null;
             //A_r may have a fixed sequence
             if (this.Ar_prefix_array.Length > 0)
@@ -2332,7 +2288,7 @@ namespace Microsoft.SRM
                 q = DeltaBorder(BorderSymbol.End, q, out _);
             else if (i > 0 && input[i + 1] == '\n')
                 // at the end of a line
-                q = DeltaBorder(BorderSymbol.EOL, q, out _);
+                q = DeltaBorder(BorderSymbol.EndOfLine, q, out _);
 
             while (i >= match_start_boundary)
             {
@@ -2377,11 +2333,11 @@ namespace Microsoft.SRM
                 if (c == 10)
                 {
                     //going backwards, first consume StartLine because reversal keeps the anchors in place
-                    p = DeltaBorder(BorderSymbol.BOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, q, out regex);
                     if (regex.IsNullable)
                         last_start = i + 1;
                     p = Delta(10, p, out _);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -2429,7 +2385,7 @@ namespace Microsoft.SRM
         private int FindFinalStatePositionUTF8(byte[] input, int i, ref int surrogate_codepoint, out int i_q0)
         {
             int k = input.Length;
-            int q = q0_A1;
+            int q = InitialStateA1;
             int i_q0_A1 = i;
             int step = 0;
             int codepoint;
@@ -2437,7 +2393,7 @@ namespace Microsoft.SRM
             bool prefix_optimize = (!this.A_fixedPrefix_ignoreCase) && this.A_prefixUTF8.Length > 1;
             while (i < k)
             {
-                if (q == q0_A1)
+                if (q == InitialStateA1)
                 {
                     if (prefix_optimize)
                     {
@@ -2547,11 +2503,11 @@ namespace Microsoft.SRM
 
                 if (c == 10)
                 {
-                    p = DeltaBorder(BorderSymbol.EOL, q, out regex);
+                    p = DeltaBorder(BorderSymbol.EndOfLine, q, out regex);
                     if (regex.IsNullable)
                         break;
                     p = Delta(10, p, out regex);
-                    p = DeltaBorder(BorderSymbol.BOL, p, out regex);
+                    p = DeltaBorder(BorderSymbol.StartOfLine, p, out regex);
                 }
                 else
                     p = Delta(c, q, out regex);
@@ -2577,6 +2533,66 @@ namespace Microsoft.SRM
             }
             i_q0 = i_q0_A1;
             return i;
+        }
+
+        public PartialMatch? PartialMatch(string input, int searchStartIndex = 0, int endat = -1)
+        {
+            if (A.isNullable)
+                throw new AutomataException(AutomataExceptionKind.MustNotAcceptEmptyString);
+            else if (string.IsNullOrEmpty(input) || searchStartIndex >= input.Length || searchStartIndex < 0)
+                throw new AutomataException(AutomataExceptionKind.InvalidArgument);
+
+            int searchEndIndex = ((endat < 0 | endat >= input.Length) ? input.Length : endat + 1);
+
+            //find the first accepting state
+            //initial start position in the input is i = 0
+            int i = searchStartIndex;
+
+            bool hasPrefix = (!this.A_prefix.Equals(string.Empty));
+
+            bool AisLazy = A_allLoopsAreLazy;
+            bool AisSingleSeq = A.IsSequenceOfSingletons;
+
+            int i_q0_A1;
+            int watchdog;
+            //optimize for the case when A starts with a fixed prefix
+            i = (hasPrefix ?
+                    FindFinalStatePositionOpt(input, searchEndIndex, i, out i_q0_A1, out watchdog) :
+                    FindFinalStatePosition(input, searchEndIndex, i, out i_q0_A1, out watchdog));
+
+            if (i == searchEndIndex)
+            {
+                //end of input has been reached without reaching a final state, so no more matches
+                return null;
+            }
+
+            int i_start;
+            int i_end;
+
+            if (watchdog >= 0)
+            {
+                i_start = i - watchdog + 1;
+                i_end = i;
+            }
+            else
+            {
+                //If A is lazy then there is no need to maximize length of end-position
+                if (AisLazy)
+                {
+                    if (AisSingleSeq)
+                        i_start = i - A.sequenceOfSingletons_count + 1;
+                    else
+                        i_start = FindStartPosition(input, i, i_q0_A1);
+                    i_end = i;
+                }
+                else
+                {
+                    i_start = FindStartPosition(input, i, i_q0_A1);
+                    i_end = FindEndPosition(input, i_start);
+                }
+            }
+
+            return new PartialMatch(i_start, i_end + 1 - i_start, true);
         }
         #endregion
     }

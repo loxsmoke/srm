@@ -65,10 +65,10 @@ namespace Microsoft.SRM
         private void InitilizeFields(ICharAlgebra<S> solver)
         {
             this.solver = solver;
-            this.nothing = SymbolicRegexNode<S>.MkFalse(this, solver.False);
-            this.dot = SymbolicRegexNode<S>.MkTrue(this, solver.True);
+            this.nothing = SymbolicRegexNode<S>.MkSingleton(this, solver.False);
+            this.dot = SymbolicRegexNode<S>.MkSingleton(this, solver.True);
             this.dotStar = SymbolicRegexNode<S>.MkDotStar(this, this.dot);
-            this.newLine = SymbolicRegexNode<S>.MkNewline(this, solver.MkCharConstraint('\n'));
+            this.newLine = SymbolicRegexNode<S>.MkSingleton(this, solver.MkCharConstraint('\n'));
             this.bolRegex = SymbolicRegexNode<S>.MkLoop(this, SymbolicRegexNode<S>.MkConcat(this, this.dotStar, this.newLine), 0, 1, false);
             this.eolRegex = SymbolicRegexNode<S>.MkLoop(this, SymbolicRegexNode<S>.MkConcat(this, this.newLine, this.dotStar), 0, 1, false);
             // --- initialize caches ---
@@ -146,7 +146,7 @@ namespace Microsoft.SRM
                 return this.nothing;
             else if (regexset.IsEverything)
                 return this.dotStar;
-            else if (regexset.IsSigleton)
+            else if (regexset.IsSingleton)
                 return regexset.GetTheElement();
             else
                 return SymbolicRegexNode<S>.MkOr(this, regexset);
@@ -192,7 +192,7 @@ namespace Microsoft.SRM
                 return this.nothing;
             else if (regexset.IsEverything)
                 return this.dotStar;
-            else if (regexset.IsSigleton)
+            else if (regexset.IsSingleton)
                 return regexset.GetTheElement();
             else
                 return SymbolicRegexNode<S>.MkAnd(this, regexset);
@@ -204,12 +204,9 @@ namespace Microsoft.SRM
         /// </summary>
         public SymbolicRegexNode<S> MkConcat(SymbolicRegexNode<S> node1, SymbolicRegexNode<S> node2)
         {
-            if (node1.IsEpsilon)
-                return node2;
-            else if (node2.IsEpsilon)
-                return node1;
-            else
-                return SymbolicRegexNode<S>.MkConcat(this, node1, node2);
+            if (node1.IsEpsilon) return node2;
+            if (node2.IsEpsilon) return node1;
+            return SymbolicRegexNode<S>.MkConcat(this, node1, node2);
         }
 
         /// <summary>
@@ -713,8 +710,8 @@ namespace Microsoft.SRM
         {
             if ((sr.IsStartAnchor && borderSymbol == BorderSymbol.Beg) ||
                 (sr.IsEndAnchor && borderSymbol == BorderSymbol.End) ||
-                (sr.IsBOLAnchor && (borderSymbol == BorderSymbol.BOL || borderSymbol == BorderSymbol.Beg)) ||
-                (sr.IsEOLAnchor && (borderSymbol == BorderSymbol.EOL || borderSymbol == BorderSymbol.End)))
+                (sr.IsBOLAnchor && (borderSymbol == BorderSymbol.StartOfLine || borderSymbol == BorderSymbol.Beg)) ||
+                (sr.IsEOLAnchor && (borderSymbol == BorderSymbol.EndOfLine || borderSymbol == BorderSymbol.End)))
             {
                 return this.epsilon;
             }
