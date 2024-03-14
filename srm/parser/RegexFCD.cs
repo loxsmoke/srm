@@ -52,7 +52,7 @@ namespace System.Text.RegularExpressions {
             if (fc == null || fc._nullable)
                 return null;
             
-            CultureInfo culture = ((t._options & RegexOptions.CultureInvariant) != 0) ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
+            CultureInfo culture = ((t.options & RegexOptions.CultureInvariant) != 0) ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
             return new RegexPrefix(fc.GetFirstChars(culture), fc.IsCaseInsensitive());
         }
 
@@ -65,7 +65,7 @@ namespace System.Text.RegularExpressions {
             RegexNode concatNode = null;
             int nextChild = 0;
 
-            curNode = tree._root;
+            curNode = tree.root;
 
             for (;;) {
                 switch (curNode._type) {
@@ -131,7 +131,7 @@ namespace System.Text.RegularExpressions {
             int nextChild = 0;
             int result = 0;
 
-            curNode = tree._root;
+            curNode = tree.root;
 
             for (;;) {
                 switch (curNode._type) {
@@ -294,7 +294,7 @@ namespace System.Text.RegularExpressions {
             RegexNode curNode;
             int curChild;
 
-            curNode = tree._root;
+            curNode = tree.root;
             curChild = 0;
 
             for (;;) {

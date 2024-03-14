@@ -18,22 +18,7 @@ namespace Microsoft.SRM
         /// <summary>
         /// The character solver associated with the regex converter
         /// </summary>
-        public ICharAlgebra<S> Solver
-        {
-            get
-            {
-                return solver;
-            }
-        }
-
-
-        //public SymbolicRegexBuilder<S> SRBuilder
-        //{
-        //    get
-        //    {
-        //        return srBuilder;
-        //    }
-        //}
+        public ICharAlgebra<S> Solver => solver;
 
         /// <summary>
         /// Constructs a regex to symbolic finite automata converter
@@ -313,7 +298,7 @@ namespace Microsoft.SRM
         public SymbolicRegexNode<S> ConvertToSymbolicRegex(string regex, RegexOptions options, bool keepAnchors = false)
         {
             RegexTree tree = RegexParser.Parse(regex, options);
-            return ConvertToSymbolicRegex(tree._root, keepAnchors);
+            return ConvertToSymbolicRegex(tree.root, keepAnchors);
         }
 
         internal SymbolicRegexNode<S> ConvertToSymbolicRegex(RegexNode root, bool keepAnchors = false, bool unwindlowerbounds = false)

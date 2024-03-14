@@ -12,7 +12,7 @@ namespace Microsoft.SRM
     public class DecisionTree : ISerializable
     {
         [NonSerialized]
-        internal int[] precomputed;
+        internal int[] precomputed; // access by index
         [NonSerialized]
         internal BST bst;
 
@@ -78,28 +78,25 @@ namespace Microsoft.SRM
             var cut = partition.Cut(from, to);
             if (cut.IsEmpty)
                 return null;
-            else
-            {
-                int block_id = cut.GetSigletonId();
-                if (block_id >= 0)
-                    //there is precisely one block remaining
-                    return new BST(block_id, null, null);
-                else
-                {
-                    //it must be that 'from < to'
-                    //or else there could only have been one block
-                    int mid = (from + to) / 2;
-                    var left = MkBST(cut, from, mid);
-                    var right = MkBST(cut, mid + 1, to);
-                    //it must be that either left != null or right != null
-                    if (left == null)
-                        return right;
-                    else if (right == null)
-                        return left;
-                    else
-                        return new BST(mid + 1, left, right);
-                }
-            }
+
+            int block_id = cut.GetSigletonId();
+            if (block_id >= 0)
+                //there is precisely one block remaining
+                return new BST(block_id, null, null);
+
+            //it must be that 'from < to'
+            //or else there could only have been one block
+            int mid = (from + to) / 2;
+            var left = MkBST(cut, from, mid);
+            var right = MkBST(cut, mid + 1, to);
+            //it must be that either left != null or right != null
+            if (left == null)
+                return right;
+            
+            if (right == null)
+                return left;
+            
+            return new BST(mid + 1, left, right);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,10 +136,11 @@ namespace Microsoft.SRM
             {
                 if (left == null)
                     return node; //return the leaf
-                else if (charCode < node)
+                
+                if (charCode < node)
                     return left.Find(charCode);
-                else
-                    return right.Find(charCode);
+                
+                return right.Find(charCode);
             }
 
             public BST(int node, BST left, BST right)

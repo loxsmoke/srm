@@ -49,7 +49,8 @@ namespace System.Text.RegularExpressions {
     using System.Diagnostics;
     using System.Globalization;
 
-    internal sealed class RegexNode {
+    internal sealed class RegexNode 
+    {
         /*
          * RegexNode types
          */
@@ -119,7 +120,7 @@ namespace System.Text.RegularExpressions {
 
         internal List<RegexNode>      _children;
 
-        internal String         _str;
+        internal string         _str;
         internal char           _ch;
         internal int            _m;
         internal int            _n;
@@ -127,42 +128,50 @@ namespace System.Text.RegularExpressions {
 
         internal RegexNode   _next;
 
-        internal RegexNode(int type, RegexOptions options) {
+        internal RegexNode(int type, RegexOptions options)
+        {
             _type = type;
             _options = options;
         }
 
-        internal RegexNode(int type, RegexOptions options, char ch) {
+        internal RegexNode(int type, RegexOptions options, char ch)
+        {
             _type = type;
             _options = options;
             _ch = ch;
         }
 
-        internal RegexNode(int type, RegexOptions options, String str) {
+        internal RegexNode(int type, RegexOptions options, String str)
+        {
             _type = type;
             _options = options;
             _str = str;
         }
 
-        internal RegexNode(int type, RegexOptions options, int m) {
+        internal RegexNode(int type, RegexOptions options, int m)
+        {
             _type = type;
             _options = options;
             _m = m;
         }
 
-        internal RegexNode(int type, RegexOptions options, int m, int n) {
+        internal RegexNode(int type, RegexOptions options, int m, int n)
+        {
             _type = type;
             _options = options;
             _m = m;
             _n = n;
         }
 
-        internal bool UseOptionR() {
+        internal bool UseOptionR()
+        {
             return(_options & RegexOptions.RightToLeft) != 0;
         }
 
-        internal RegexNode ReverseLeft() {
-            if (UseOptionR() && _type == Concatenate && _children != null) {
+        internal RegexNode ReverseLeft()
+        {
+            if (UseOptionR() && _type == Concatenate && _children != null)
+            {
                 _children.Reverse(0, _children.Count);
             }
 
@@ -171,7 +180,8 @@ namespace System.Text.RegularExpressions {
 
 
         // Pass type as OneLazy or OneLoop
-        internal void MakeRep(int type, int min, int max) {
+        internal void MakeRep(int type, int min, int max)
+        {
             _type += (type - One);
             _m = min;
             _n = max;
@@ -182,10 +192,12 @@ namespace System.Text.RegularExpressions {
          *
          * Removes redundant nodes from the subtree, and returns a reduced subtree.
          */
-        internal RegexNode Reduce() {
+        internal RegexNode Reduce()
+        {
             RegexNode n;
 
-            switch (Type()) {
+            switch (Type())
+            {
                 case Alternate:
                     n = ReduceAlternation();
                     break;
@@ -226,8 +238,10 @@ namespace System.Text.RegularExpressions {
          * 
          */
 
-        internal RegexNode StripEnation(int emptyType) {
-            switch (ChildCount()) {
+        internal RegexNode StripEnation(int emptyType)
+        {
+            switch (ChildCount())
+            {
                 case 0:
                     return new RegexNode(emptyType, _options);
                 case 1:
@@ -244,7 +258,8 @@ namespace System.Text.RegularExpressions {
          * serve no function, so strip them out.
          */
 
-        internal RegexNode ReduceGroup() {
+        internal RegexNode ReduceGroup()
+        {
             RegexNode u;
 
             for (u = this; u.Type() == Group; )
@@ -260,7 +275,8 @@ namespace System.Text.RegularExpressions {
          * too lumpy
          */
 
-        internal RegexNode ReduceRep() {
+        internal RegexNode ReduceRep()
+        {
             RegexNode u;
             RegexNode child;
             int type;
@@ -272,7 +288,8 @@ namespace System.Text.RegularExpressions {
             min = _m;
             max = _n;
 
-            for (;;) {
+            for (; ; )
+            {
                 if (u.ChildCount() == 0)
                     break;
 
@@ -299,7 +316,7 @@ namespace System.Text.RegularExpressions {
                     u._n = max = ((Int32.MaxValue - 1) / u._n < max) ? Int32.MaxValue : u._n * max;
             }
 
-            return min == Int32.MaxValue ? new RegexNode(Nothing, _options) : u;
+            return min == int.MaxValue ? new RegexNode(Nothing, _options) : u;
         }
 
         /*
@@ -309,19 +326,23 @@ namespace System.Text.RegularExpressions {
          * or empty, it's transformed accordingly.
          */
 
-        internal RegexNode ReduceSet() {
+        internal RegexNode ReduceSet()
+        {
             // Extract empty-set, one and not-one case as special
 
-            if (RegexCharClass.IsEmpty(_str)) {
+            if (RegexCharClass.IsEmpty(_str))
+            {
                 _type = Nothing;
                 _str = null;
             }
-            else if (RegexCharClass.IsSingleton(_str)) {
+            else if (RegexCharClass.IsSingleton(_str))
+            {
                 _ch = RegexCharClass.SingletonChar(_str);
                 _str = null;
                 _type += (One - Set);
             }
-            else if (RegexCharClass.IsSingletonInverse(_str)) {
+            else if (RegexCharClass.IsSingletonInverse(_str))
+            {
                 _ch = RegexCharClass.SingletonChar(_str);
                 _str = null;
                 _type += (Notone - Set);
@@ -343,7 +364,8 @@ namespace System.Text.RegularExpressions {
          * <CONSIDER>common prefix reductions such as winner|windows -> win(?:ner|dows)</CONSIDER>
          */
 
-        internal RegexNode ReduceAlternation() {
+        internal RegexNode ReduceAlternation()
+        {
             // Combine adjacent sets/chars
 
             bool wasLastSet;
@@ -362,34 +384,41 @@ namespace System.Text.RegularExpressions {
             lastNodeCannotMerge = false;
             optionsLast = 0;
 
-            for (i = 0, j = 0; i < _children.Count; i++, j++) {
+            for (i = 0, j = 0; i < _children.Count; i++, j++)
+            {
                 at = _children[i];
 
                 if (j < i)
                     _children[j] = at;
 
-                for (;;) {
-                    if (at._type == Alternate) {
+                for (; ; )
+                {
+                    if (at._type == Alternate)
+                    {
                         for (int k = 0; k < at._children.Count; k++)
                             at._children[k]._next = this;
 
                         _children.InsertRange(i + 1, at._children);
                         j--;
                     }
-                    else if (at._type == Set || at._type == One) {
+                    else if (at._type == Set || at._type == One)
+                    {
                         // Cannot merge sets if L or I options differ, or if either are negated.
                         optionsAt = at._options & (RegexOptions.RightToLeft | RegexOptions.IgnoreCase);
 
 
-                        if (at._type == Set) {
-                            if (!wasLastSet || optionsLast != optionsAt || lastNodeCannotMerge || !RegexCharClass.IsMergeable(at._str)) {
+                        if (at._type == Set)
+                        {
+                            if (!wasLastSet || optionsLast != optionsAt || lastNodeCannotMerge || !RegexCharClass.IsMergeable(at._str))
+                            {
                                 wasLastSet = true;
                                 lastNodeCannotMerge = !RegexCharClass.IsMergeable(at._str);
                                 optionsLast = optionsAt;
                                 break;
                             }
                         }
-                        else if (!wasLastSet || optionsLast != optionsAt || lastNodeCannotMerge) {
+                        else if (!wasLastSet || optionsLast != optionsAt || lastNodeCannotMerge)
+                        {
                             wasLastSet = true;
                             lastNodeCannotMerge = false;
                             optionsLast = optionsAt;
@@ -448,7 +477,8 @@ namespace System.Text.RegularExpressions {
          * (?:abc)(?:def) -> abcdef
          */
 
-        internal RegexNode ReduceConcatenation() {
+        internal RegexNode ReduceConcatenation()
+        {
             // Eliminate empties and concat adjacent strings/chars
 
             bool wasLastString;

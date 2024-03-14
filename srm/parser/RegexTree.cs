@@ -16,21 +16,21 @@ namespace System.Text.RegularExpressions {
     {
         internal RegexTree(RegexNode root, Dictionary<int, int> caps, int[] capnumlist, int captop, Dictionary<string, int> capnames, string[] capslist, RegexOptions opts)
         {
-            _root = root;
+            this.root = root;
             _caps = caps;
             _capnumlist = capnumlist;
             _capnames = capnames;
             _capslist = capslist;
             _captop = captop;
-            _options = opts;
+            options = opts;
         }
 
-        internal RegexNode _root;
+        internal RegexNode root;
         internal Dictionary<int, int> _caps;
         internal int[]  _capnumlist;
         internal Dictionary<string, int> _capnames;
         internal string[]  _capslist;
-        internal RegexOptions _options;
+        internal RegexOptions options;
         internal int       _captop;
 
 #if DBG

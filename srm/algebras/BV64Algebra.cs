@@ -58,24 +58,20 @@ namespace Microsoft.SRM
         /// </summary>
         internal BV64Algebra ReplaceMintermsWithVisibleCharacters()
         {
-            Func<int, int> f = x =>
-            {
-                int k;
-                if (x <= 26)
-                    k = ('A' + (x - 1));
-                else if (x <= 52)
-                    k = ('a' + (x - 27));
-                else if (x <= 62)
-                    k = ('0' + (x - 53));
-                else
-                    k = '=';
-                return k;
-            };
             var simplified_partition = new IntervalSet[this.partition.Length];
             int[] precomp = new int[256];
             for (int i=1; i < simplified_partition.Length; i++)
             {
-                int k = f(i);
+                int k;
+                if (i <= 26)
+                    k = ('A' + (i - 1));
+                else if (i <= 52)
+                    k = ('a' + (i - 27));
+                else if (i <= 62)
+                    k = ('0' + (i - 53));
+                else
+                    k = '=';
+
                 simplified_partition[i] = new IntervalSet(new Tuple<uint, uint>((uint)k,(uint)k));
                 precomp[k] = i;
             }
@@ -103,45 +99,15 @@ namespace Microsoft.SRM
             return new BV64Algebra(simplified_dtree, simplified_partition);
         }
 
-        public ulong False
-        {
-            get
-            {
-                return zero;
-            }
-        }
+        public ulong False => zero;
 
-        public bool IsExtensional
-        {
-            get
-            {
-                return true;
-            }
-        }
+        public bool IsExtensional => true;
 
-        public ulong True
-        {
-            get
-            {
-                return all;
-            }
-        }
+        public ulong True => all;
 
-        public BitWidth Encoding
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-        }
+        public BitWidth Encoding => throw new NotSupportedException();
 
-        public CharSetSolver CharSetProvider
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-        }
+        public CharSetSolver CharSetProvider => throw new NotSupportedException();
 
         public bool AreEquivalent(ulong predicate1, ulong predicate2)
         {

@@ -39,26 +39,17 @@ namespace Microsoft.SRM
         /// <summary>
         /// True iff the node is a terminal (One and Zero are null).
         /// </summary>
-        public bool IsLeaf
-        {
-            get { return One == null; }
-        }
+        public bool IsLeaf => One == null;
 
         /// <summary>
         /// True iff the set is full.
         /// </summary>
-        public bool IsFull
-        {
-            get { return this == algebra.True; }
-        }
+        public bool IsFull => this == algebra.True;
 
         /// <summary>
         /// True iff the set is empty.
         /// </summary>
-        public bool IsEmpty
-        {
-            get { return this == algebra.False; }
-        }
+        public bool IsEmpty => this == algebra.False;
 
         /// <summary>
         /// Counts the number of nodes (both terminals and nonterminals) in the BDD.
@@ -119,30 +110,15 @@ namespace Microsoft.SRM
             return res;
         }
 
-        public static BDD operator >>(BDD x, int k)
-        {
-            return x.algebra.ShiftRight(x, k);
-        }
+        public static BDD operator >>(BDD x, int k) => x.algebra.ShiftRight(x, k);
 
-        public static BDD operator <<(BDD x, int k)
-        {
-            return x.algebra.ShiftLeft(x, k);
-        }
+        public static BDD operator <<(BDD x, int k) => x.algebra.ShiftLeft(x, k);
 
-        public static BDD operator &(BDD x, BDD y)
-        {
-            return x.algebra.MkAnd(x, y);
-        }
+        public static BDD operator &(BDD x, BDD y) => x.algebra.MkAnd(x, y);
 
-        public static BDD operator |(BDD x, BDD y)
-        {
-            return x.algebra.MkOr(x, y);
-        }
+        public static BDD operator |(BDD x, BDD y) => x.algebra.MkOr(x, y);
 
-        public static BDD operator !(BDD x)
-        {
-            return x.algebra.MkNot(x);
-        }
+        public static BDD operator !(BDD x) => x.algebra.MkNot(x);
     }
 }
 

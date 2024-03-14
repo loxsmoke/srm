@@ -40,8 +40,7 @@ namespace Microsoft.SRM
         public BDD MkBvSet(int nr, BDD one, BDD zero)
         {
             var key = new BvSetKey(nr, one, zero);
-            BDD set;
-            if (!bvsetCache.TryGetValue(key, out set))
+            if (!bvsetCache.TryGetValue(key, out BDD set))
             {
                 set = new BDD(this, nr, one, zero);
                 bvsetCache[key] = set;
@@ -195,18 +194,12 @@ namespace Microsoft.SRM
         /// <summary>
         /// Gets the full set.
         /// </summary>
-        public BDD True
-        {
-            get { return _True; }
-        }
+        public BDD True => _True;
 
         /// <summary>
         /// Gets the empty set.
         /// </summary>
-        public BDD False
-        {
-            get { return _False; }
-        }
+        public BDD False => _False;
 
         /// <summary>
         /// Returns true if the set is nonempty.
@@ -569,10 +562,7 @@ namespace Microsoft.SRM
             return res;
         }
 
-        public bool IsExtensional
-        {
-            get { return true; }
-        }
+        public bool IsExtensional => true;
 
         #region Serialializing and deserializing BDDs from dags encoded by ulongs arrays
         /// <summary>

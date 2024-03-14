@@ -25,7 +25,8 @@ namespace System.Text.RegularExpressions {
     using System.Diagnostics;
     using System.Globalization;
 
-    internal sealed class RegexCode {
+    internal sealed class RegexCode 
+    {
         // the following primitive operations come directly from the parser
 
         // lef/back operands        description
@@ -96,7 +97,7 @@ namespace System.Text.RegularExpressions {
         // the code
 
         internal int[]           _codes;                 // the code
-        internal String[]        _strings;               // the string/set table
+        internal string[]        _strings;               // the string/set table
         // not used! internal int[]           _sparseIndex;           // a list of the groups that are used
         internal int             _trackcount;            // how many instructions use backtracking
         internal Dictionary<int, int> _caps;         // mapping of user group numbers -> impl group slots
