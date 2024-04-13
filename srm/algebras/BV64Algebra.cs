@@ -114,7 +114,7 @@ namespace Microsoft.SRM
             return predicate1 == predicate2;
         }
 
-        public IEnumerable<Tuple<bool[], ulong>> GenerateMinterms(params ulong[] constraints)
+        public IEnumerable<Tuple<bool[], ulong>> GenerateMinterms(ulong[] constraints)
         {
             return this.mtg.GenerateMinterms(constraints);
         }

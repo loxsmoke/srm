@@ -18,7 +18,8 @@ namespace System.Text.RegularExpressions {
     using System.Collections;
     using System.Globalization;
     
-    internal sealed class RegexFCD {
+    internal sealed class RegexFCD 
+    {
         private int[]      _intStack;
         private int        _intDepth;    
         private RegexFC[]  _fcStack;
@@ -60,61 +61,65 @@ namespace System.Text.RegularExpressions {
          * This is a related computation: it takes a RegexTree and computes the
          * leading substring if it see one. It's quite trivial and gives up easily.
          */
-        internal static RegexPrefix Prefix(RegexTree tree) {
+        internal static RegexPrefix Prefix(RegexTree tree) 
+        {
             RegexNode curNode;
             RegexNode concatNode = null;
             int nextChild = 0;
 
             curNode = tree.root;
 
-            for (;;) {
-                switch (curNode._type) {
-                    case RegexNode.Concatenate:
-                        if (curNode.ChildCount() > 0) {
+            for (;;) 
+            {
+                switch (curNode.Type) 
+                {
+                    case RegexNodeType.Concatenate:
+                        if (curNode.ChildCount > 0) 
+                        {
                             concatNode = curNode;
                             nextChild = 0;
                         }
                         break;
 
-                    case RegexNode.Greedy:
-                    case RegexNode.Capture:
+                    case RegexNodeType.Greedy:
+                    case RegexNodeType.Capture:
                         curNode = curNode.Child(0);
                         concatNode = null;
                         continue;
 
-                    case RegexNode.Oneloop:
-                    case RegexNode.Onelazy:
-                        if (curNode._m > 0) {
-                            string pref = String.Empty.PadRight(curNode._m, curNode._ch);
-                            return new RegexPrefix(pref, 0 != (curNode._options & RegexOptions.IgnoreCase));
+                    case RegexNodeType.Oneloop:
+                    case RegexNodeType.Onelazy:
+                        if (curNode.minIterations > 0) {
+                            string pref = String.Empty.PadRight(curNode.minIterations, curNode.oneChar);
+                            return new RegexPrefix(pref, 0 != (curNode.options & RegexOptions.IgnoreCase));
                         }
                         else
                             return RegexPrefix.Empty;
                         
-                    case RegexNode.One:
-                        return new RegexPrefix(curNode._ch.ToString(CultureInfo.InvariantCulture), 0 != (curNode._options & RegexOptions.IgnoreCase));
+                    case RegexNodeType.One:
+                        return new RegexPrefix(curNode.oneChar.ToString(CultureInfo.InvariantCulture), 0 != (curNode.options & RegexOptions.IgnoreCase));
                             
-                    case RegexNode.Multi:
-                        return new RegexPrefix(curNode._str, 0 != (curNode._options & RegexOptions.IgnoreCase));
+                    case RegexNodeType.Multi:
+                        return new RegexPrefix(curNode._str, 0 != (curNode.options & RegexOptions.IgnoreCase));
 
-                    case RegexNode.Bol:
-                    case RegexNode.Eol:
-                    case RegexNode.Boundary:
-                    case RegexNode.ECMABoundary:
-                    case RegexNode.Beginning:
-                    case RegexNode.Start:
-                    case RegexNode.EndZ:
-                    case RegexNode.End:
-                    case RegexNode.Empty:
-                    case RegexNode.Require:
-                    case RegexNode.Prevent:
+                    case RegexNodeType.Bol:
+                    case RegexNodeType.Eol:
+                    case RegexNodeType.Boundary:
+                    case RegexNodeType.ECMABoundary:
+                    case RegexNodeType.Beginning:
+                    case RegexNodeType.Start:
+                    case RegexNodeType.EndZ:
+                    case RegexNodeType.End:
+                    case RegexNodeType.Empty:
+                    case RegexNodeType.Require:
+                    case RegexNodeType.Prevent:
                         break;
 
                     default:
                         return RegexPrefix.Empty;
                 }
 
-                if (concatNode == null || nextChild >= concatNode.ChildCount())
+                if (concatNode == null || nextChild >= concatNode.ChildCount)
                     return RegexPrefix.Empty;
 
                 curNode = concatNode.Child(nextChild++);
@@ -125,7 +130,8 @@ namespace System.Text.RegularExpressions {
          * Yet another related computation: it takes a RegexTree and computes the
          * leading anchors that it encounters.
          */
-        internal static int Anchors(RegexTree tree) {
+        internal static int Anchors(RegexTree tree) 
+        {
             RegexNode curNode;
             RegexNode concatNode = null;
             int nextChild = 0;
@@ -133,41 +139,44 @@ namespace System.Text.RegularExpressions {
 
             curNode = tree.root;
 
-            for (;;) {
-                switch (curNode._type) {
-                    case RegexNode.Concatenate:
-                        if (curNode.ChildCount() > 0) {
+            for (;;) 
+            {
+                switch (curNode.Type) 
+                {
+                    case RegexNodeType.Concatenate:
+                        if (curNode.ChildCount > 0) 
+                        {
                             concatNode = curNode;
                             nextChild = 0;
                         }
                         break;
 
-                    case RegexNode.Greedy:
-                    case RegexNode.Capture:
+                    case RegexNodeType.Greedy:
+                    case RegexNodeType.Capture:
                         curNode = curNode.Child(0);
                         concatNode = null;
                         continue;
 
-                    case RegexNode.Bol:
-                    case RegexNode.Eol:
-                    case RegexNode.Boundary:
-                    case RegexNode.ECMABoundary:
-                    case RegexNode.Beginning:
-                    case RegexNode.Start:
-                    case RegexNode.EndZ:
-                    case RegexNode.End:
-                        return result | AnchorFromType(curNode._type);
+                    case RegexNodeType.Bol:
+                    case RegexNodeType.Eol:
+                    case RegexNodeType.Boundary:
+                    case RegexNodeType.ECMABoundary:
+                    case RegexNodeType.Beginning:
+                    case RegexNodeType.Start:
+                    case RegexNodeType.EndZ:
+                    case RegexNodeType.End:
+                        return result | AnchorFromType(curNode.Type);
 
-                    case RegexNode.Empty:
-                    case RegexNode.Require:
-                    case RegexNode.Prevent:
+                    case RegexNodeType.Empty:
+                    case RegexNodeType.Require:
+                    case RegexNodeType.Prevent:
                         break;
 
                     default:
                         return result;
                 }
 
-                if (concatNode == null || nextChild >= concatNode.ChildCount())
+                if (concatNode == null || nextChild >= concatNode.ChildCount)
                     return result;
 
                 curNode = concatNode.Child(nextChild++);
@@ -177,16 +186,18 @@ namespace System.Text.RegularExpressions {
         /*
          * Convert anchor type to anchor bit.
          */
-        private static int AnchorFromType(int type) {
-            switch (type) {
-                case RegexNode.Bol:             return Bol;         
-                case RegexNode.Eol:             return Eol;         
-                case RegexNode.Boundary:        return Boundary;    
-                case RegexNode.ECMABoundary:    return ECMABoundary;
-                case RegexNode.Beginning:       return Beginning;   
-                case RegexNode.Start:           return Start;       
-                case RegexNode.EndZ:            return EndZ;        
-                case RegexNode.End:             return End;         
+        private static int AnchorFromType(RegexNodeType type) 
+        {
+            switch (type) 
+            {
+                case RegexNodeType.Bol:             return Bol;         
+                case RegexNodeType.Eol:             return Eol;         
+                case RegexNodeType.Boundary:        return Boundary;    
+                case RegexNodeType.ECMABoundary:    return ECMABoundary;
+                case RegexNodeType.Beginning:       return Beginning;   
+                case RegexNodeType.Start:           return Start;       
+                case RegexNodeType.EndZ:            return EndZ;        
+                case RegexNodeType.End:             return End;         
                 default:                        return 0;
             }
         }
@@ -290,24 +301,28 @@ namespace System.Text.RegularExpressions {
          * through the tree and calls CalculateFC to emits code before
          * and after each child of an interior node, and at each leaf.
          */
-        private RegexFC RegexFCFromRegexTree(RegexTree tree) {
+        private RegexFC RegexFCFromRegexTree(RegexTree tree) 
+        {
             RegexNode curNode;
             int curChild;
 
             curNode = tree.root;
             curChild = 0;
 
-            for (;;) {
-                if (curNode._children == null) {
+            for (;;) 
+            {
+                if (curNode.children == null) 
+                {
                     // This is a leaf node
-                    CalculateFC(curNode._type, curNode, 0);
+                    CalculateFC(curNode.Type, curNode, 0);
                 }
-                else if (curChild < curNode._children.Count && !_skipAllChildren) {
+                else if (curChild < curNode.children.Count && !_skipAllChildren) 
+                {
                     // This is an interior node, and we have more children to analyze
-                    CalculateFC(curNode._type | BeforeChild, curNode, curChild);
+                    CalculateFCBeforeChild(curNode.Type, curNode, curChild);
 
                     if (!_skipchild) {
-                        curNode = (RegexNode)curNode._children[curChild];
+                        curNode = (RegexNode)curNode.children[curChild];
                         // this stack is how we get a depth first walk of the tree. 
                         PushInt(curChild);
                         curChild = 0;
@@ -327,9 +342,9 @@ namespace System.Text.RegularExpressions {
                     break;
 
                 curChild = PopInt();
-                curNode = curNode._next;
+                curNode = curNode.nextNode;
 
-                CalculateFC(curNode._type | AfterChild, curNode, curChild);
+                CalculateFCAfterChild(curNode.Type, curNode, curChild);
                 if (_failed)
                     return null;
                 
@@ -345,112 +360,138 @@ namespace System.Text.RegularExpressions {
         /*
          * Called in Beforechild to prevent further processing of the current child
          */
-        private void SkipChild() {
+        private void SkipChild() 
+        {
             _skipchild = true;
         }
+
+        private void CalculateFCBeforeChild(RegexNodeType NodeType, RegexNode node, int CurIndex) =>
+            CalculateFC(NodeType, node, CurIndex, true);
+
+        private void CalculateFCAfterChild(RegexNodeType NodeType, RegexNode node, int CurIndex) =>
+            CalculateFC(NodeType, node, CurIndex, false, true);
 
         /*
          * FC computation and shortcut cases for each node type
          */
-        private void CalculateFC(int NodeType, RegexNode node, int CurIndex) {
+        private void CalculateFC(RegexNodeType NodeType, RegexNode node, int CurIndex, bool beforeChild = false, bool afterChild = false)
+        {
             bool ci = false;
             bool rtl = false;
 
-            if (NodeType <= RegexNode.Ref) {
-                if ((node._options & RegexOptions.IgnoreCase) != 0)
+            if (NodeType <= RegexNodeType.Ref) 
+            {
+                if ((node.options & RegexOptions.IgnoreCase) != 0)
                     ci = true;
-                if ((node._options & RegexOptions.RightToLeft) != 0)
+                if ((node.options & RegexOptions.RightToLeft) != 0)
                     rtl = true;
             }
 
-            switch (NodeType) {
-                case RegexNode.Concatenate | BeforeChild:
-                case RegexNode.Alternate | BeforeChild:
-                case RegexNode.Testref | BeforeChild:
-                case RegexNode.Loop | BeforeChild:
-                case RegexNode.Lazyloop | BeforeChild:
-                    break;
+            if (beforeChild)
+            {
+                switch (NodeType)
+                {
+                    case RegexNodeType.Concatenate:
+                    case RegexNodeType.Alternate:
+                    case RegexNodeType.Testref:
+                    case RegexNodeType.Loop:
+                    case RegexNodeType.Lazyloop:
 
-                case RegexNode.Testgroup | BeforeChild:
-                    if (CurIndex == 0)
+                    case RegexNodeType.Group:
+                    case RegexNodeType.Capture:
+                    case RegexNodeType.Greedy:
+                        return;
+
+                    case RegexNodeType.Require:
+                    case RegexNodeType.Prevent:
                         SkipChild();
-                    break;
+                        PushFC(new RegexFC(true));
+                        return;
 
-                case RegexNode.Empty:
+                    case RegexNodeType.Testgroup:
+                        if (CurIndex == 0)
+                            SkipChild();
+                        return;
+                }
+                throw new ArgumentException(SR.GetString(SR.UnexpectedOpcode, NodeType.ToString()));
+            }
+
+            if (afterChild)
+            {
+                switch (NodeType)
+                {
+                    case RegexNodeType.Concatenate:
+                        if (CurIndex != 0)
+                        {
+                            RegexFC child = PopFC();
+                            RegexFC cumul = TopFC();
+
+                            _failed = !cumul.AddFC(child, true);
+                        }
+
+                        if (!TopFC()._nullable)
+                            _skipAllChildren = true;
+                        return;
+
+                    case RegexNodeType.Testgroup:
+                        if (CurIndex > 1)
+                        {
+                            RegexFC child = PopFC();
+                            RegexFC cumul = TopFC();
+
+                            _failed = !cumul.AddFC(child, false);
+                        }
+                        return;
+
+                    case RegexNodeType.Alternate:
+                    case RegexNodeType.Testref:
+                        if (CurIndex != 0)
+                        {
+                            RegexFC child = PopFC();
+                            RegexFC cumul = TopFC();
+
+                            _failed = !cumul.AddFC(child, false);
+                        }
+                        return;
+
+                    case RegexNodeType.Loop:
+                    case RegexNodeType.Lazyloop:
+                        if (node.minIterations == 0)
+                            TopFC()._nullable = true;
+                        return;
+
+                    case RegexNodeType.Group:
+                    case RegexNodeType.Capture:
+                    case RegexNodeType.Greedy:
+                    case RegexNodeType.Require:
+                    case RegexNodeType.Prevent:
+                        return;
+                }
+                throw new ArgumentException(SR.GetString(SR.UnexpectedOpcode, NodeType.ToString()));
+            }
+
+            switch (NodeType) 
+            {
+                case RegexNodeType.Empty:
                     PushFC(new RegexFC(true));
                     break;
 
-                case RegexNode.Concatenate | AfterChild:
-                    if (CurIndex != 0) {
-                        RegexFC child = PopFC();
-                        RegexFC cumul = TopFC();
-
-                        _failed = !cumul.AddFC(child, true);
-                    }
-
-                    if (!TopFC()._nullable)
-                        _skipAllChildren = true;
+                case RegexNodeType.One:
+                case RegexNodeType.Notone:
+                    PushFC(new RegexFC(node.oneChar, NodeType == RegexNodeType.Notone, false, ci));
                     break;
 
-                case RegexNode.Testgroup | AfterChild:
-                    if (CurIndex > 1) {
-                        RegexFC child = PopFC();
-                        RegexFC cumul = TopFC();
-
-                        _failed = !cumul.AddFC(child, false);
-                    }
+                case RegexNodeType.Oneloop:
+                case RegexNodeType.Onelazy:
+                    PushFC(new RegexFC(node.oneChar, false, node.minIterations == 0, ci));
                     break;
 
-                case RegexNode.Alternate | AfterChild:
-                case RegexNode.Testref | AfterChild:
-                    if (CurIndex != 0) {
-                        RegexFC child = PopFC();
-                        RegexFC cumul = TopFC();
-
-                        _failed = !cumul.AddFC(child, false);
-                    }
+                case RegexNodeType.Notoneloop:
+                case RegexNodeType.Notonelazy:
+                    PushFC(new RegexFC(node.oneChar, true, node.minIterations == 0, ci));
                     break;
 
-                case RegexNode.Loop | AfterChild:
-                case RegexNode.Lazyloop | AfterChild:
-                    if (node._m == 0)
-                        TopFC()._nullable = true;
-                    break;
-
-                case RegexNode.Group | BeforeChild:
-                case RegexNode.Group | AfterChild:
-                case RegexNode.Capture | BeforeChild:
-                case RegexNode.Capture | AfterChild:
-                case RegexNode.Greedy | BeforeChild:
-                case RegexNode.Greedy | AfterChild:
-                    break;
-
-                case RegexNode.Require | BeforeChild:
-                case RegexNode.Prevent | BeforeChild:
-                    SkipChild();
-                    PushFC(new RegexFC(true));
-                    break;
-
-                case RegexNode.Require | AfterChild:
-                case RegexNode.Prevent | AfterChild:
-                    break;
-
-                case RegexNode.One:
-                case RegexNode.Notone:
-                    PushFC(new RegexFC(node._ch, NodeType == RegexNode.Notone, false, ci));
-                    break;
-
-                case RegexNode.Oneloop:
-                case RegexNode.Onelazy:
-                    PushFC(new RegexFC(node._ch, false, node._m == 0, ci));
-                    break;
-
-                case RegexNode.Notoneloop:
-                case RegexNode.Notonelazy:
-                    PushFC(new RegexFC(node._ch, true, node._m == 0, ci));
-                    break;
-
-                case RegexNode.Multi:
+                case RegexNodeType.Multi:
                     if (node._str.Length == 0)
                         PushFC(new RegexFC(true));
                     else if (!rtl)
@@ -459,45 +500,47 @@ namespace System.Text.RegularExpressions {
                         PushFC(new RegexFC(node._str[node._str.Length - 1], false, false, ci));
                     break;
 
-                case RegexNode.Set:
+                case RegexNodeType.Set:
                     PushFC(new RegexFC(node._str, false, ci));
                     break;
 
-                case RegexNode.Setloop:
-                case RegexNode.Setlazy:
-                    PushFC(new RegexFC(node._str, node._m == 0, ci));
+                case RegexNodeType.Setloop:
+                case RegexNodeType.Setlazy:
+                    PushFC(new RegexFC(node._str, node.minIterations == 0, ci));
                     break;
 
-                case RegexNode.Ref:
+                case RegexNodeType.Ref:
                     PushFC(new RegexFC(RegexCharClass.AnyClass, true, false));
                     break;
 
-                case RegexNode.Nothing:
-                case RegexNode.Bol:
-                case RegexNode.Eol:
-                case RegexNode.Boundary:
-                case RegexNode.Nonboundary:
-                case RegexNode.ECMABoundary:
-                case RegexNode.NonECMABoundary:
-                case RegexNode.Beginning:
-                case RegexNode.Start:
-                case RegexNode.EndZ:
-                case RegexNode.End:
+                case RegexNodeType.Nothing:
+                case RegexNodeType.Bol:
+                case RegexNodeType.Eol:
+                case RegexNodeType.Boundary:
+                case RegexNodeType.Nonboundary:
+                case RegexNodeType.ECMABoundary:
+                case RegexNodeType.NonECMABoundary:
+                case RegexNodeType.Beginning:
+                case RegexNodeType.Start:
+                case RegexNodeType.EndZ:
+                case RegexNodeType.End:
                     PushFC(new RegexFC(true));
                     break;
 
                 default:
-                    throw new ArgumentException(SR.GetString(SR.UnexpectedOpcode, NodeType.ToString(CultureInfo.CurrentCulture)));
+                    throw new ArgumentException(SR.GetString(SR.UnexpectedOpcode, NodeType.ToString()));
             }
         }
     }
 
-    internal sealed class RegexFC {
+    internal sealed class RegexFC 
+    {
         internal RegexCharClass _cc;
         internal bool _nullable;
         internal bool _caseInsensitive;
 
-        internal RegexFC(bool nullable) {
+        internal RegexFC(bool nullable) 
+        {
             _cc = new RegexCharClass();
             _nullable = nullable;
         }
@@ -519,15 +562,18 @@ namespace System.Text.RegularExpressions {
             _nullable = nullable;
         }
 
-        internal RegexFC(String charClass, bool nullable, bool caseInsensitive) {
+        internal RegexFC(string charClass, bool nullable, bool caseInsensitive) 
+        {
             _cc = RegexCharClass.Parse(charClass);
 
             _nullable = nullable;
             _caseInsensitive = caseInsensitive;
         }
 
-        internal bool AddFC(RegexFC fc, bool concatenate) {
-            if (!_cc.CanMerge || !fc._cc.CanMerge) {
+        internal bool AddFC(RegexFC fc, bool concatenate) 
+        {
+            if (!_cc.CanMerge || !fc._cc.CanMerge) 
+            {
                 return false;
             }
             

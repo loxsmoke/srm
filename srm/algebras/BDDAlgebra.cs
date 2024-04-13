@@ -283,7 +283,7 @@ namespace Microsoft.SRM
 
         #region Minterm generation
 
-        public IEnumerable<Tuple<bool[], BDD>> GenerateMinterms(params BDD[] sets)
+        public IEnumerable<Tuple<bool[], BDD>> GenerateMinterms(BDD[] sets)
         {
             return mintermGen.GenerateMinterms(sets);
         }

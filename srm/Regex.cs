@@ -19,7 +19,8 @@ namespace Microsoft.SRM
 
         private IMatcher matcher;
 
-        public Regex(string pattern) : this(pattern, RegexOptions.None) { }
+        public Regex(string pattern) : this(pattern, RegexOptions.None)
+        { }
 
         public Regex(string pattern, RegexOptions options)
         {

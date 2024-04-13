@@ -28,30 +28,32 @@ namespace System.Text.RegularExpressions {
 
             _rep = rep;
 
-            if (concat.Type() != RegexNode.Concatenate)
+            if (concat.Type != RegexNodeType.Concatenate)
                 throw new ArgumentException(SR.GetString(SR.ReplacementError));
 
             sb = new StringBuilder();
             strings = new List<String>();
             rules = new List<Int32>();
 
-            for (int i = 0; i < concat.ChildCount(); i++) {
+            for (int i = 0; i < concat.ChildCount; i++) {
                 RegexNode child = concat.Child(i);
 
-                switch (child.Type()) {
-                    case RegexNode.Multi:
+                switch (child.Type) 
+                {
+                    case RegexNodeType.Multi:
                         sb.Append(child._str);
                         break;
-                    case RegexNode.One:
-                        sb.Append(child._ch);
+                    case RegexNodeType.One:
+                        sb.Append(child.oneChar);
                         break;
-                    case RegexNode.Ref:
-                        if (sb.Length > 0) {
+                    case RegexNodeType.Ref:
+                        if (sb.Length > 0) 
+                        {
                             rules.Add(strings.Count);
                             strings.Add(sb.ToString());
                             sb.Length = 0;
                         }
-                        slot = child._m;
+                        slot = child.minIterations;
 
                         if (_caps != null && slot >= 0)
                             slot = (int)_caps[slot];

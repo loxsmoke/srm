@@ -127,7 +127,8 @@ namespace System.Text.RegularExpressions {
             stringlist.CopyTo(0, _strings, 0, stringlist.Count);
         }
 
-        internal static bool OpcodeBacktracks(int Op) {
+        internal static bool OpcodeBacktracks(int Op) 
+        {
             Op &= Mask;
 
             switch (Op) {
@@ -158,7 +159,8 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        internal static int OpcodeSize(int Opcode) {
+        internal static int OpcodeSize(int Opcode) 
+        {
             Opcode &= Mask;
 
             switch (Opcode) {

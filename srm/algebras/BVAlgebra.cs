@@ -149,7 +149,7 @@ namespace Microsoft.SRM
             return predicate1.Equals(predicate2);
         }
 
-        public IEnumerable<Tuple<bool[], BV>> GenerateMinterms(params BV[] constraints)
+        public IEnumerable<Tuple<bool[], BV>> GenerateMinterms(BV[] constraints)
         {
             return this.mtg.GenerateMinterms(constraints);
         }

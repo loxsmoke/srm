@@ -32,77 +32,77 @@ namespace Microsoft.SRM
             this.srBuilder = new SymbolicRegexBuilder<S>((ICharAlgebra<S>)solver);
         }
 
-        static string DescribeRegexNodeType(int node_type)
+        static string DescribeRegexNodeType(RegexNodeType node_type)
         {
             switch (node_type)
             {
-                case RegexNode.Alternate:
+                case RegexNodeType.Alternate:
                     return "Alternate";
-                case RegexNode.Beginning:
+                case RegexNodeType.Beginning:
                     return "Beginning";
-                case RegexNode.Bol:
+                case RegexNodeType.Bol:
                     return "Bol";
-                case RegexNode.Capture:  // (?<name> regex)
+                case RegexNodeType.Capture:  // (?<name> regex)
                     return "Capture";
-                case RegexNode.Concatenate:
+                case RegexNodeType.Concatenate:
                     return "Concatenate";
-                case RegexNode.Empty:
+                case RegexNodeType.Empty:
                     return "Empty";
-                case RegexNode.End:
+                case RegexNodeType.End:
                     return "End";
-                case RegexNode.EndZ:
+                case RegexNodeType.EndZ:
                     return "EndZ";
-                case RegexNode.Eol:
+                case RegexNodeType.Eol:
                     return "Eol";
-                case RegexNode.Loop:
+                case RegexNodeType.Loop:
                     return "Loop";
-                case RegexNode.Multi:
+                case RegexNodeType.Multi:
                     return "Multi";
-                case RegexNode.Notone:
+                case RegexNodeType.Notone:
                     return "Notone";
-                case RegexNode.Notoneloop:
+                case RegexNodeType.Notoneloop:
                     return "Notoneloop";
-                case RegexNode.One:
+                case RegexNodeType.One:
                     return "One";
-                case RegexNode.Oneloop:
+                case RegexNodeType.Oneloop:
                     return "Oneloop";
-                case RegexNode.Set:
+                case RegexNodeType.Set:
                     return "Set";
-                case RegexNode.Setloop:
+                case RegexNodeType.Setloop:
                     return "Setloop";
-                case RegexNode.ECMABoundary:
+                case RegexNodeType.ECMABoundary:
                     return "ECMABoundary";
-                case RegexNode.Boundary:
+                case RegexNodeType.Boundary:
                     return "Boundary";
-                case RegexNode.Nothing:
+                case RegexNodeType.Nothing:
                     return "Nothing";
-                case RegexNode.Nonboundary:
+                case RegexNodeType.Nonboundary:
                     return "Nonboundary";
-                case RegexNode.NonECMABoundary:
+                case RegexNodeType.NonECMABoundary:
                     return "NonECMABoundary";
-                case RegexNode.Greedy:
+                case RegexNodeType.Greedy:
                     return "Greedy";
-                case RegexNode.Group:
+                case RegexNodeType.Group:
                     return "Group";
-                case RegexNode.Lazyloop:
+                case RegexNodeType.Lazyloop:
                     return "Lazyloop";
-                case RegexNode.Prevent:
+                case RegexNodeType.Prevent:
                     return "Prevent";
-                case RegexNode.Require:
+                case RegexNodeType.Require:
                     return "Require";
-                case RegexNode.Testgroup:
+                case RegexNodeType.Testgroup:
                     return "Testgroup";
-                case RegexNode.Testref:
+                case RegexNodeType.Testref:
                     return "Testref";
-                case RegexNode.Notonelazy:
+                case RegexNodeType.Notonelazy:
                     return "Notonelazy";
-                case RegexNode.Onelazy:
+                case RegexNodeType.Onelazy:
                     return "Onelazy";
-                case RegexNode.Setlazy:
+                case RegexNodeType.Setlazy:
                     return "Setlazy";
-                case RegexNode.Ref:
+                case RegexNodeType.Ref:
                     return "Ref";
-                case RegexNode.Start:
+                case RegexNodeType.Start:
                     return "Start";
                 default:
                     throw new AutomataException(AutomataExceptionKind.UnrecognizedRegex);
@@ -336,72 +336,72 @@ namespace Microsoft.SRM
 
         internal SymbolicRegexNode<S> ConvertNodeToSymbolicRegex(RegexNode node, bool topLevel)
         {
-            switch (node._type)
+            switch (node.Type)
             {
-                case RegexNode.Alternate:
-                    return this.srBuilder.MkOr(Array.ConvertAll(node._children.ToArray(), x => ConvertNodeToSymbolicRegex(x, topLevel)));
-                case RegexNode.Beginning:
+                case RegexNodeType.Alternate:
+                    return this.srBuilder.MkOr(Array.ConvertAll(node.children.ToArray(), x => ConvertNodeToSymbolicRegex(x, topLevel)));
+                case RegexNodeType.Beginning:
                     return this.srBuilder.startAnchor;
-                case RegexNode.Bol:
+                case RegexNodeType.Bol:
                     return this.srBuilder.bolAnchor;
-                case RegexNode.Capture:  //paranthesis (...)
+                case RegexNodeType.Capture:  //paranthesis (...)
                     return ConvertNodeToSymbolicRegex(node.Child(0), topLevel);
-                case RegexNode.Concatenate:
-                    return this.srBuilder.MkConcat(Array.ConvertAll(node._children.ToArray(), x => ConvertNodeToSymbolicRegex(x, false)), topLevel);
-                case RegexNode.Empty:
+                case RegexNodeType.Concatenate:
+                    return this.srBuilder.MkConcat(Array.ConvertAll(node.children.ToArray(), x => ConvertNodeToSymbolicRegex(x, false)), topLevel);
+                case RegexNodeType.Empty:
                     return this.srBuilder.epsilon;
-                case RegexNode.End:
-                case RegexNode.EndZ:
+                case RegexNodeType.End:
+                case RegexNodeType.EndZ:
                     return this.srBuilder.endAnchor;
-                case RegexNode.Eol:
+                case RegexNodeType.Eol:
                     return this.srBuilder.eolAnchor;
-                case RegexNode.Loop:
-                    return this.srBuilder.MkLoop(ConvertNodeToSymbolicRegex(node._children[0], false), false, node._m, node._n);
-                case RegexNode.Lazyloop:
-                    return this.srBuilder.MkLoop(ConvertNodeToSymbolicRegex(node._children[0], false), true, node._m, node._n);
-                case RegexNode.Multi:
+                case RegexNodeType.Loop:
+                    return this.srBuilder.MkLoop(ConvertNodeToSymbolicRegex(node.children[0], false), false, node.minIterations, node.maxIterations);
+                case RegexNodeType.Lazyloop:
+                    return this.srBuilder.MkLoop(ConvertNodeToSymbolicRegex(node.children[0], false), true, node.minIterations, node.maxIterations);
+                case RegexNodeType.Multi:
                     return ConvertNodeMultiToSymbolicRegex(node, topLevel);
-                case RegexNode.Notone:
+                case RegexNodeType.Notone:
                     return ConvertNodeNotoneToSymbolicRegex(node);
-                case RegexNode.Notoneloop:
+                case RegexNodeType.Notoneloop:
                     return ConvertNodeNotoneloopToSymbolicRegex(node, false);
-                case RegexNode.Notonelazy:
+                case RegexNodeType.Notonelazy:
                     return ConvertNodeNotoneloopToSymbolicRegex(node, true);
-                case RegexNode.One:
+                case RegexNodeType.One:
                     return ConvertNodeOneToSymbolicRegex(node);
-                case RegexNode.Oneloop:
+                case RegexNodeType.Oneloop:
                     return ConvertNodeOneloopToSymbolicRegex(node, false);
-                case RegexNode.Onelazy:
+                case RegexNodeType.Onelazy:
                     return ConvertNodeOneloopToSymbolicRegex(node, true);
-                case RegexNode.Set:
+                case RegexNodeType.Set:
                     return ConvertNodeSetToSymbolicRegex(node);
-                case RegexNode.Setloop:
+                case RegexNodeType.Setloop:
                     return ConvertNodeSetloopToSymbolicRegex(node, false);
-                case RegexNode.Setlazy:
+                case RegexNodeType.Setlazy:
                     return ConvertNodeSetloopToSymbolicRegex(node, true);
-                case RegexNode.Testgroup:
-                    return MkIfThenElse(ConvertNodeToSymbolicRegex(node._children[0], false), ConvertNodeToSymbolicRegex(node._children[1], false), ConvertNodeToSymbolicRegex(node._children[2], false));
-                case RegexNode.ECMABoundary:
-                case RegexNode.Boundary:
+                case RegexNodeType.Testgroup:
+                    return MkIfThenElse(ConvertNodeToSymbolicRegex(node.children[0], false), ConvertNodeToSymbolicRegex(node.children[1], false), ConvertNodeToSymbolicRegex(node.children[2], false));
+                case RegexNodeType.ECMABoundary:
+                case RegexNodeType.Boundary:
                     throw new AutomataException(@"Not implemented: word-boundary \b");
-                case RegexNode.Nonboundary:
-                case RegexNode.NonECMABoundary:
+                case RegexNodeType.Nonboundary:
+                case RegexNodeType.NonECMABoundary:
                     throw new AutomataException(@"Not implemented: non-word-boundary \B");
-                case RegexNode.Nothing:
+                case RegexNodeType.Nothing:
                     throw new AutomataException(@"Not implemented: Nothing");
-                case RegexNode.Greedy:
+                case RegexNodeType.Greedy:
                     throw new AutomataException("Not implemented: greedy constructs (?>) (?<)");
-                case RegexNode.Start:
+                case RegexNodeType.Start:
                     throw new AutomataException(@"Not implemented: \G");
-                case RegexNode.Group:
+                case RegexNodeType.Group:
                     throw new AutomataException("Not supported: grouping (?:)");
-                case RegexNode.Prevent:
+                case RegexNodeType.Prevent:
                     throw new AutomataException("Not supported: prevent constructs (?!) (?<!)");
-                case RegexNode.Require:
+                case RegexNodeType.Require:
                     throw new AutomataException("Not supported: require constructs (?=) (?<=)");
-                case RegexNode.Testref:
+                case RegexNodeType.Testref:
                     throw new AutomataException("Not supported: test construct (?(n) | )");
-                case RegexNode.Ref:
+                case RegexNodeType.Ref:
                     throw new AutomataException(@"Not supported: references \1");
                 default:
                     throw new AutomataException(@"Unexpected regex construct");
@@ -473,7 +473,7 @@ namespace Microsoft.SRM
         {
             //sequence of characters
             string sequence = node._str;
-            bool ignoreCase = ((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
+            bool ignoreCase = ((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
 
             S[] conds = Array.ConvertAll(sequence.ToCharArray(), c => solver.MkCharConstraint(c, ignoreCase));
             var seq = this.srBuilder.MkSequence(conds, topLevel);
@@ -485,9 +485,9 @@ namespace Microsoft.SRM
         /// </summary>
         private SymbolicRegexNode<S> ConvertNodeNotoneToSymbolicRegex(RegexNode node)
         {
-            bool ignoreCase = ((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
+            bool ignoreCase = ((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
 
-            S cond = solver.MkNot(solver.MkCharConstraint(node._ch, ignoreCase));
+            S cond = solver.MkNot(solver.MkCharConstraint(node.oneChar, ignoreCase));
 
             return this.srBuilder.MkSingleton(cond);
         }
@@ -497,9 +497,9 @@ namespace Microsoft.SRM
         /// </summary>
         private SymbolicRegexNode<S> ConvertNodeOneToSymbolicRegex(RegexNode node)
         {
-            bool ignoreCase = ((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
+            bool ignoreCase = ((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
 
-            S cond = solver.MkCharConstraint(node._ch, ignoreCase);
+            S cond = solver.MkCharConstraint(node.oneChar, ignoreCase);
 
             return this.srBuilder.MkSingleton(cond);
         }
@@ -512,28 +512,28 @@ namespace Microsoft.SRM
             //ranges and categories are encoded in set
             string set = node._str;
 
-            S moveCond = CreateConditionFromSet((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0, set);
+            S moveCond = CreateConditionFromSet((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0, set);
 
             return this.srBuilder.MkSingleton(moveCond);
         }
 
         private SymbolicRegexNode<S> ConvertNodeNotoneloopToSymbolicRegex(RegexNode node, bool isLazy)
         {
-            bool ignoreCase = ((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
-            S cond = solver.MkNot(solver.MkCharConstraint(node._ch, ignoreCase));
+            bool ignoreCase = ((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
+            S cond = solver.MkNot(solver.MkCharConstraint(node.oneChar, ignoreCase));
 
             SymbolicRegexNode<S> body = this.srBuilder.MkSingleton(cond);
-            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node._m, node._n);
+            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node.minIterations, node.maxIterations);
             return loop;
         }
 
         private SymbolicRegexNode<S> ConvertNodeOneloopToSymbolicRegex(RegexNode node, bool isLazy)
         {
-            bool ignoreCase = ((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
-            S cond = solver.MkCharConstraint(node._ch, ignoreCase);
+            bool ignoreCase = ((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0);
+            S cond = solver.MkCharConstraint(node.oneChar, ignoreCase);
 
             SymbolicRegexNode<S> body = this.srBuilder.MkSingleton(cond);
-            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node._m, node._n);
+            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node.minIterations, node.maxIterations);
             return loop;
         }
 
@@ -542,10 +542,10 @@ namespace Microsoft.SRM
             //ranges and categories are encoded in set
             string set = node._str;
 
-            S moveCond = CreateConditionFromSet((node._options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0, set);
+            S moveCond = CreateConditionFromSet((node.options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) != 0, set);
 
             SymbolicRegexNode<S> body = this.srBuilder.MkSingleton(moveCond);
-            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node._m, node._n);
+            SymbolicRegexNode<S> loop = this.srBuilder.MkLoop(body, isLazy, node.minIterations, node.maxIterations);
             return loop;
         }
 

@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-//using RestrictKeyType = System.Int64;
-using System.IO;
-using System.Text.RegularExpressions;
 
 namespace Microsoft.SRM
 {
@@ -16,10 +13,7 @@ namespace Microsoft.SRM
 
         int _bw;
 
-        public BitWidth Encoding
-        {
-            get { return (BitWidth)_bw; }
-        }
+        public BitWidth Encoding => (BitWidth)_bw;
 
         /// <summary>
         /// Construct the solver for BitWidth.BV16

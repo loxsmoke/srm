@@ -241,57 +241,27 @@ namespace Microsoft.SRM
         /// <summary>
         /// Returns true iff this is a loop whose lower bound is 0 and upper bound is max
         /// </summary>
-        public bool IsStar
-        {
-            get
-            {
-                return lower == 0 && upper == int.MaxValue;
-            }
-        }
+        public bool IsStar => lower == 0 && upper == int.MaxValue;
 
         /// <summary>
         /// Returns true iff this loop has an upper bound
         /// </summary>
-        public bool HasUpperBound
-        {
-            get
-            {
-                return upper < int.MaxValue;
-            }
-        }
+        public bool HasUpperBound => upper < int.MaxValue;
 
         /// <summary>
         /// Returns true iff this loop has a lower bound
         /// </summary>
-        public bool HasLowerBound
-        {
-            get
-            {
-                return lower > 0;
-            }
-        }
+        public bool HasLowerBound => lower > 0;
 
         /// <summary>
         /// Returns true iff this is a loop whose lower bound is 0 and upper bound is 1
         /// </summary>
-        public bool IsMaybe
-        {
-            get
-            {
-                return lower == 0 && upper == 1;
-            }
-        }
+        public bool IsMaybe => lower == 0 && upper == 1;
 
         /// <summary>
         /// Returns true if this is Epsilon
         /// </summary>
-        public bool IsEpsilon
-        {
-            get
-            {
-                return this.kind == SymbolicRegexKind.Epsilon;
-            }
-        }
+        public bool IsEpsilon => this.kind == SymbolicRegexKind.Epsilon;
         #endregion
 
         /// <summary>
@@ -763,13 +733,7 @@ namespace Microsoft.SRM
         /// <summary>
         /// true iff epsilon is accepted
         /// </summary>
-        public bool IsNullable
-        {
-            get
-            {
-                return isNullable;
-            }
-        }
+        public bool IsNullable => isNullable;
 
         [NonSerialized]
         static int prime = 31;

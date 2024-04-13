@@ -22,20 +22,24 @@
 //      m+1...n The categories.  This is a list of UnicodeCategory enum values which describe categories
 //              included in this class.  
 
-namespace System.Text.RegularExpressions {
+namespace System.Text.RegularExpressions 
+{
 
     using System.Collections;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Diagnostics;
+    using System.Linq;
+    using System.ComponentModel;
 
-    internal sealed class RegexCharClass {
+    public sealed class RegexCharClass 
+    {
         // instance data
-        private List<SingleRange>          _rangelist;
-        private StringBuilder      _categories;
-        private bool               _canonical;
-        private bool               _negate;
-        private RegexCharClass     _subtractor;
+        public List<SingleRange> ranges;
+        private bool rangesSorted;
+        private StringBuilder categories;
+        public bool Negate { get; set; }
+        public RegexCharClass Subtraction { get; private set; }
 
         // Constants
         private const int FLAGS = 0;
@@ -43,8 +47,8 @@ namespace System.Text.RegularExpressions {
         private const int CATEGORYLENGTH = 2;
         private const int SETSTART = 3;
 
-        private const char   Nullchar   = '\0';
-        private const char   Lastchar   = '\uFFFF';
+        private const char Nullchar   = '\0';
+        private const char Lastchar   = '\uFFFF';
 
         private const char GroupChar = (char) 0;
 
@@ -56,37 +60,37 @@ namespace System.Text.RegularExpressions {
         private const char ZeroWidthNonJoiner = '\u200C';
 
 
-        private static readonly String InternalRegexIgnoreCase = "__InternalRegexIgnoreCase__";
-        private static readonly String Space = "\x64";
-        private static readonly String NotSpace = NegateCategory(Space);
-        private static readonly String Word;
-        private static readonly String NotWord;
+        private static readonly string InternalRegexIgnoreCase = "__InternalRegexIgnoreCase__";
+        private static readonly string Space = "\x64";
+        private static readonly string NotSpace = NegateCategory(Space);
+        private static readonly string Word;
+        private static readonly string NotWord;
 
-        internal static readonly String SpaceClass;
-        internal static readonly String NotSpaceClass;
-        internal static readonly String WordClass;
-        internal static readonly String NotWordClass;
-        internal static readonly String DigitClass;
-        internal static readonly String NotDigitClass;
+        internal static readonly string SpaceClass;
+        internal static readonly string NotSpaceClass;
+        internal static readonly string WordClass;
+        internal static readonly string NotWordClass;
+        internal static readonly string DigitClass;
+        internal static readonly string NotDigitClass;
         
-        private const String ECMASpaceSet    = "\u0009\u000E\u0020\u0021";
-        private const String NotECMASpaceSet = "\0\u0009\u000E\u0020\u0021";
-        private const String ECMAWordSet     = "\u0030\u003A\u0041\u005B\u005F\u0060\u0061\u007B\u0130\u0131";
-        private const String NotECMAWordSet  = "\0\u0030\u003A\u0041\u005B\u005F\u0060\u0061\u007B\u0130\u0131";
-        private const String ECMADigitSet    = "\u0030\u003A";
-        private const String NotECMADigitSet = "\0\u0030\u003A";
+        private const string ECMASpaceSet    = "\u0009\u000E\u0020\u0021";
+        private const string NotECMASpaceSet = "\0\u0009\u000E\u0020\u0021";
+        private const string ECMAWordSet     = "\u0030\u003A\u0041\u005B\u005F\u0060\u0061\u007B\u0130\u0131";
+        private const string NotECMAWordSet  = "\0\u0030\u003A\u0041\u005B\u005F\u0060\u0061\u007B\u0130\u0131";
+        private const string ECMADigitSet    = "\u0030\u003A";
+        private const string NotECMADigitSet = "\0\u0030\u003A";
 
-        internal const String ECMASpaceClass    = "\x00\x04\x00" + ECMASpaceSet;
-        internal const String NotECMASpaceClass = "\x01\x04\x00" + ECMASpaceSet;
-        internal const String ECMAWordClass     = "\x00\x0A\x00" + ECMAWordSet;
-        internal const String NotECMAWordClass  = "\x01\x0A\x00" + ECMAWordSet;
-        internal const String ECMADigitClass    = "\x00\x02\x00" + ECMADigitSet;
-        internal const String NotECMADigitClass = "\x01\x02\x00" + ECMADigitSet;
+        internal const string ECMASpaceClass    = "\x00\x04\x00" + ECMASpaceSet;
+        internal const string NotECMASpaceClass = "\x01\x04\x00" + ECMASpaceSet;
+        internal const string ECMAWordClass     = "\x00\x0A\x00" + ECMAWordSet;
+        internal const string NotECMAWordClass  = "\x01\x0A\x00" + ECMAWordSet;
+        internal const string ECMADigitClass    = "\x00\x02\x00" + ECMADigitSet;
+        internal const string NotECMADigitClass = "\x01\x02\x00" + ECMADigitSet;
 
-        internal const String AnyClass          = "\x00\x01\x00\x00";
-        internal const String EmptyClass        = "\x00\x00\x00";
+        internal const string AnyClass          = "\x00\x01\x00\x00";
+        internal const string EmptyClass        = "\x00\x00\x00";
         
-        static Dictionary<String, String> _definedCategories;
+        static Dictionary<string, string> _definedCategories;
 
         /*
          *   The property table contains all the block definitions defined in the 
@@ -96,7 +100,8 @@ namespace System.Text.RegularExpressions {
          *   
         **/
         // Has to be sorted by the first column
-        private static readonly String[,] _propTable = {
+        private static readonly string[,] _propTable = 
+            {
             {"IsAlphabeticPresentationForms",       "\uFB00\uFB50"},
             {"IsArabic",                            "\u0600\u0700"},
             {"IsArabicPresentationForms-A",         "\uFB50\uFE00"},
@@ -352,13 +357,14 @@ namespace System.Text.RegularExpressions {
             new LowerCaseMapping('\uFF21', '\uFF3A', LowercaseAdd, 32),
         };
         
-        static RegexCharClass() {
+        static RegexCharClass() 
+        {
             // addressing Dictionary versus Hashtable thread safety difference by using
             // a temp Dictionary. Note that this is just a theoretical concern since this
             // is a static ctor and getter methods aren't called until after this is 
             // done; this is just to avoid the long-term possibility of thread safety 
             // problems.
-            Dictionary<String, String> tempCategories = new Dictionary<String, String>(32);
+            var tempCategories = new Dictionary<string, string>(32);
             
             char[] groups = new char[9];
             StringBuilder word = new StringBuilder(11);
@@ -385,7 +391,7 @@ namespace System.Text.RegularExpressions {
             tempCategories["Cs"] = groups[5].ToString();     // Surrogate
 
             groups[6] = GroupChar;
-            tempCategories["C"] = new String(groups, 0, 7);
+            tempCategories["C"] = new string(groups, 0, 7);
 
             // Letters
             groups[1] = (char) ((int) UnicodeCategory.LowercaseLetter + 1);
@@ -505,32 +511,26 @@ namespace System.Text.RegularExpressions {
          *
          * Creates an empty character class.
          */
-        internal RegexCharClass() {
-            _rangelist = new List<SingleRange>(6);
-            _canonical = true;
-            _categories = new StringBuilder();
-
+        internal RegexCharClass() 
+        {
+            ranges = new List<SingleRange>(6);
+            rangesSorted = true;
+            categories = new StringBuilder();
         }
 
-        private  RegexCharClass(bool negate, List<SingleRange> ranges, StringBuilder categories, RegexCharClass subtraction) {
-            _rangelist = ranges;
-            _categories = categories;
-            _canonical = true;
-            _negate=negate;
-            _subtractor = subtraction;
+        private RegexCharClass(bool negate, List<SingleRange> ranges, StringBuilder categories, RegexCharClass subtraction) 
+        {
+            this.ranges = ranges;
+            this.categories = categories;
+            rangesSorted = true;
+            Negate = negate;
+            Subtraction = subtraction;
         }
 
-        internal bool CanMerge {
-            get { 
-                return !_negate && _subtractor == null;
-            }
-        }
+        internal bool CanMerge => !Negate && Subtraction == null;
         
-        internal bool Negate {
-            set { _negate = value; }
-        }
-
-        internal void AddChar(char c) {
+        internal void AddChar(char c) 
+        {
             AddRange(c,c);
         }
         
@@ -539,23 +539,18 @@ namespace System.Text.RegularExpressions {
          *
          * Adds a regex char class
          */
-        internal void AddCharClass(RegexCharClass cc) {
-            int i;
-
+        internal void AddCharClass(RegexCharClass cc) 
+        {
             Debug.Assert(cc.CanMerge && this.CanMerge, "Both character classes added together must be able to merge" );
             
-            if (!cc._canonical) {
-                // if the new char class to add isn't canonical, we're not either.
-                _canonical = false;
-            }
-            else if (_canonical && RangeCount() > 0 && cc.RangeCount() > 0 && cc.GetRangeAt(0)._first <= GetRangeAt(RangeCount() - 1)._last)
-                _canonical = false;
-
-            for (i = 0; i < cc.RangeCount(); i += 1) {
-                _rangelist.Add(cc.GetRangeAt(i));
+            if (!cc.rangesSorted ||
+                RangeCount() > 0 && cc.RangeCount() > 0 && cc.GetRangeAt(0).first <= GetRangeAt(RangeCount() - 1).last) 
+            {
+                rangesSorted = false;
             }
 
-            _categories.Append(cc._categories.ToString());
+            ranges.AddRange(cc.ranges);
+            categories.Append(cc.categories.ToString());
         }
 
         /*
@@ -563,25 +558,29 @@ namespace System.Text.RegularExpressions {
          *
          * Adds a set (specified by its string represenation) to the class.
          */
-        private void AddSet(String set) {
+        private void AddSet(string set) 
+        {
             int i;
 
-            if (_canonical && RangeCount() > 0 && set.Length > 0 && 
-                set[0] <= GetRangeAt(RangeCount() - 1)._last)
-                _canonical = false;
+            if (rangesSorted && RangeCount() > 0 && set.Length > 0 && 
+                set[0] <= GetRangeAt(RangeCount() - 1).last)
+                rangesSorted = false;
 
-            for (i = 0; i < set.Length - 1; i += 2) {
-                _rangelist.Add(new SingleRange(set[i], (char)(set[i + 1] - 1)));
+            for (i = 0; i < set.Length - 1; i += 2) 
+            {
+                ranges.Add(new SingleRange(set[i], (char)(set[i + 1] - 1)));
             }
 
-            if (i < set.Length) {
-                _rangelist.Add(new SingleRange(set[i], Lastchar));
+            if (i < set.Length) 
+            {
+                ranges.Add(new SingleRange(set[i], Lastchar));
             }
         }
 
-        internal void AddSubtraction(RegexCharClass sub) {
-            Debug.Assert(_subtractor == null, "Can't add two subtractions to a char class. ");
-            _subtractor = sub;
+        internal void AddSubtraction(RegexCharClass sub) 
+        {
+            Debug.Assert(Subtraction == null, "Can't add two subtractions to a char class. ");
+            Subtraction = sub;
         }
         
         /*
@@ -589,22 +588,25 @@ namespace System.Text.RegularExpressions {
          *
          * Adds a single range of characters to the class.
          */
-        internal void AddRange(char first, char last) {
-            _rangelist.Add(new SingleRange(first, last));
-            if (_canonical && _rangelist.Count > 0 &&
-                first <= _rangelist[_rangelist.Count - 1]._last) {
-                _canonical = false;
+        internal void AddRange(char first, char last) 
+        {
+            ranges.Add(new SingleRange(first, last));
+            if (rangesSorted && ranges.Count > 0 &&
+                first <= ranges[ranges.Count - 1].last) 
+            {
+                rangesSorted = false;
             }
         }
 
         internal void AddCategoryFromName(string categoryName, bool invert, bool caseInsensitive, string pattern) {
 
-            String cat;
-            _definedCategories.TryGetValue(categoryName, out cat);
-            if (cat != null && !categoryName.Equals(InternalRegexIgnoreCase)) {
+            _definedCategories.TryGetValue(categoryName, out string cat);
+            if (cat != null && !categoryName.Equals(InternalRegexIgnoreCase)) 
+            {
                 string catstr = cat;
 
-                if (caseInsensitive) {
+                if (caseInsensitive) 
+                {
                     if (categoryName.Equals("Ll") || categoryName.Equals("Lu") || categoryName.Equals("Lt"))
                         // when RegexOptions.IgnoreCase is specified then {Ll}, {Lu}, and {Lt} cases should all match
                         catstr = (string) _definedCategories[InternalRegexIgnoreCase];
@@ -613,15 +615,13 @@ namespace System.Text.RegularExpressions {
                 if (invert)
                     catstr = NegateCategory(catstr); // negate the category
 
-                _categories.Append((string) catstr);
+                categories.Append(catstr);
             }
             else
                 AddSet(SetFromProperty(categoryName, invert, pattern));
         }
 
-        private void AddCategory(string category) {
-            _categories.Append(category);
-        }
+        private void AddCategory(string category) => categories.Append(category);
 
         /*
          * AddLowerCase()
@@ -629,19 +629,21 @@ namespace System.Text.RegularExpressions {
          * Adds to the class any lowercase versions of characters already
          * in the class. Used for case-insensitivity.
          */
-        internal void AddLowercase(CultureInfo culture) {
+        internal void AddLowercase(CultureInfo culture) 
+        {
             int i;
             int origSize;
             SingleRange range;
 
-            _canonical = false;
+            rangesSorted = false;
 
-            for (i = 0, origSize = _rangelist.Count; i < origSize; i++) {
-                range = _rangelist[i];
-                if (range._first == range._last)
-                    range._first = range._last = Char.ToLower(range._first, culture);
+            for (i = 0, origSize = ranges.Count; i < origSize; i++) 
+            {
+                range = ranges[i];
+                if (range.IsSingleCharRange)
+                    range.first = range.last = char.ToLower(range.first, culture);
                 else
-                    AddLowercaseRange(range._first, range._last, culture);
+                    AddLowercaseRange(range.first, range.last, culture);
             }
         }
 
@@ -651,12 +653,14 @@ namespace System.Text.RegularExpressions {
          * For a single range that's in the set, adds any additional ranges
          * necessary to ensure that lowercase equivalents are also included.
          */
-        private void AddLowercaseRange(char chMin, char chMax, CultureInfo culture) {
+        private void AddLowercaseRange(char chMin, char chMax, CultureInfo culture) 
+        {
             int i, iMax, iMid;
             char chMinT, chMaxT;
             LowerCaseMapping lc;
 
-            for (i = 0, iMax = _lcTable.Length; i < iMax; ) {
+            for (i = 0, iMax = _lcTable.Length; i < iMax; ) 
+            {
                 iMid = (i + iMax) / 2;
                 if (_lcTable[iMid]._chMax < chMin)
                     i = iMid + 1;
@@ -667,14 +671,16 @@ namespace System.Text.RegularExpressions {
             if (i >= _lcTable.Length)
                 return;
 
-            for ( ; i < _lcTable.Length && (lc = _lcTable[i])._chMin <= chMax; i++) {
+            for ( ; i < _lcTable.Length && (lc = _lcTable[i])._chMin <= chMax; i++) 
+            {
                 if ((chMinT = lc._chMin) < chMin)
                     chMinT = chMin;
 
                 if ((chMaxT = lc._chMax) > chMax)
                     chMaxT = chMax;
 
-                switch (lc._lcOp) {
+                switch (lc._lcOp) 
+                {
                     case LowercaseSet:
                         chMinT = (char)lc._data;
                         chMaxT = (char)lc._data;
@@ -698,14 +704,17 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        internal void AddWord(bool ecma, bool negate) {
-            if (negate) {
+        internal void AddWord(bool ecma, bool negate) 
+        {
+            if (negate) 
+            {
                 if (ecma)
                     AddSet(RegexCharClass.NotECMAWordSet);
                 else
                     AddCategory(RegexCharClass.NotWord);
             }
-            else {
+            else 
+            {
                 if (ecma)
                     AddSet(RegexCharClass.ECMAWordSet);
                 else
@@ -713,14 +722,17 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        internal void AddSpace(bool ecma, bool negate) {
-            if (negate) {
+        internal void AddSpace(bool ecma, bool negate) 
+        {
+            if (negate) 
+            {
                 if (ecma)
                     AddSet(RegexCharClass.NotECMASpaceSet);
                 else
                     AddCategory(RegexCharClass.NotSpace);
             }
-            else {
+            else 
+            {
                 if (ecma)
                     AddSet(RegexCharClass.ECMASpaceSet);
                 else
@@ -728,7 +740,8 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        internal void AddDigit(bool ecma, bool negate, string pattern) {
+        internal void AddDigit(bool ecma, bool negate, string pattern) 
+        {
             if (ecma) {
                 if (negate) 
                     AddSet(RegexCharClass.NotECMADigitSet);
@@ -739,7 +752,8 @@ namespace System.Text.RegularExpressions {
                 AddCategoryFromName("Nd", negate, false, pattern);
         }
         
-        internal static string ConvertOldStringsToClass(string set, string category) {
+        internal static string ConvertOldStringsToClass(string set, string category)
+        {
             StringBuilder sb = new StringBuilder(set.Length + category.Length + 3);
 
             if (set.Length >= 2 && set[0] =='\0' && set[1] == '\0') {
@@ -764,16 +778,19 @@ namespace System.Text.RegularExpressions {
          *
          * Returns the char
          */
-        internal static char SingletonChar(String set) {
+        internal static char SingletonChar(string set) 
+        {
             Debug.Assert(IsSingleton(set) || IsSingletonInverse(set), "Tried to get the singleton char out of a non singleton character class");
             return set[SETSTART];
         }
 
-        internal static bool IsMergeable(string charClass) {
+        internal static bool IsMergeable(string charClass) 
+        {
             return (!IsNegated(charClass) && !IsSubtraction(charClass));
         }
         
-        internal static bool IsEmpty(String charClass) {
+        internal static bool IsEmpty(string charClass) 
+        {
             if (charClass[CATEGORYLENGTH] == 0 && charClass[FLAGS] == 0 && charClass[SETLENGTH] == 0 && !IsSubtraction(charClass))
                 return true;
             else
@@ -785,31 +802,41 @@ namespace System.Text.RegularExpressions {
          *
          * True if the set contains a single character only
          */
-        internal static bool IsSingleton(String set) {
-            if (set[FLAGS] == 0 && set[CATEGORYLENGTH] == 0 && set[SETLENGTH] == 2 && !IsSubtraction(set) &&
+        internal static bool IsSingleton(string set) 
+        {
+            if (set[FLAGS] == 0 && 
+                set[CATEGORYLENGTH] == 0 && 
+                set[SETLENGTH] == 2 && 
+                !IsSubtraction(set) &&
                 (set[SETSTART] == Lastchar || set[SETSTART]+1 == set[SETSTART+1]))
                 return true;
             else
                 return false;
         }
 
-        internal static bool IsSingletonInverse(String set) {
-            if (set[FLAGS] == 1 && set[CATEGORYLENGTH] == 0 && set[SETLENGTH] == 2 && !IsSubtraction(set) &&
+        internal static bool IsSingletonInverse(string set) 
+        {
+            if (set[FLAGS] == 1 && 
+                set[CATEGORYLENGTH] == 0 && 
+                set[SETLENGTH] == 2 && !IsSubtraction(set) &&
                 (set[SETSTART] == Lastchar || set[SETSTART]+1 == set[SETSTART+1]))
                 return true;
             else
                 return false;
         }
 
-        private static bool IsSubtraction(string charClass) {
+        private static bool IsSubtraction(string charClass) 
+        {
             return (charClass.Length > SETSTART + charClass[SETLENGTH] + charClass[CATEGORYLENGTH]);
         }
         
-        internal static bool IsNegated(string set) {
+        internal static bool IsNegated(string set) 
+        {
             return (set != null && set[FLAGS] == 1);
         }
         
-        internal static bool IsECMAWordChar(char ch) {
+        internal static bool IsECMAWordChar(char ch) 
+        {
             // According to ECMA-262, \s, \S, ., ^, and $ use Unicode-based interpretations of
             // whitespace and newline, while \d, \D\, \w, \W, \b, and \B use ASCII-only 
             // interpretations of digit, word character, and word boundary.  In other words,
@@ -818,7 +845,8 @@ namespace System.Text.RegularExpressions {
             return CharInClass(ch, ECMAWordClass);
         }
 
-        internal static bool IsWordChar(char ch) {
+        internal static bool IsWordChar(char ch) 
+        {
             // According to UTS#18 Unicode Regular Expressions (http://www.unicode.org/reports/tr18/)
             // RL 1.4 Simple Word Boundaries  The class of <word_character> includes all Alphabetic
             // values from the Unicode character database, from UnicodeData.txt [UData], plus the U+200C
@@ -831,14 +859,16 @@ namespace System.Text.RegularExpressions {
         }
         
 
-        internal static bool CharInClassRecursive(char ch, String set, int start) {
+        internal static bool CharInClassRecursive(char ch, string set, int start) 
+        {
             int mySetLength = set[start+SETLENGTH];
             int myCategoryLength = set[start+CATEGORYLENGTH];
             int myEndPosition = start + SETSTART + mySetLength + myCategoryLength;
             
             bool subtracted = false;
             
-            if (set.Length > myEndPosition) {
+            if (set.Length > myEndPosition) 
+            {
                 subtracted = CharInClassRecursive(ch, set, myEndPosition);
             }
 
@@ -858,7 +888,8 @@ namespace System.Text.RegularExpressions {
          * Determines a character's membership in a character class (via the
          * string representation of the class).
          */
-        private static bool CharInClassInternal(char ch, string set, int start, int mySetLength, int myCategoryLength) {
+        private static bool CharInClassInternal(char ch, string set, int start, int mySetLength, int myCategoryLength) 
+        {
             int min;
             int max;
             int mid;
@@ -882,7 +913,8 @@ namespace System.Text.RegularExpressions {
             Debug.Assert((SETSTART & 0x1) == 1, "If SETSTART is not odd, the calculation below this will be reversed");
             if ((min & 0x1) == (start & 0x1)) 
                 return true;
-            else {
+            else 
+            {
                 if (myCategoryLength == 0)
                     return false;
                 
@@ -890,23 +922,28 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        private static bool CharInCategory(char ch, string set, int start, int mySetLength, int myCategoryLength) {
+        private static bool CharInCategory(char ch, string set, int start, int mySetLength, int myCategoryLength) 
+        {
             UnicodeCategory chcategory = char.GetUnicodeCategory(ch);
 
             int i=start + SETSTART + mySetLength;
             int end = i + myCategoryLength;
-            while (i<end) {
+            while (i<end) 
+            {
                 int curcat = (short) set[i];
 
-                if (curcat == 0) {
+                if (curcat == 0) 
+                {
                     // zero is our marker for a group of categories - treated as a unit
-                    if (CharInCategoryGroup(ch, chcategory, set, ref i))
+                    if (CharInCategoryGroup(chcategory, set, ref i))
                         return true;
                 }
-                else if (curcat > 0) {
+                else if (curcat > 0) 
+                {
                     // greater than zero is a positive case
 
-                    if (curcat  == SpaceConst) {
+                    if (curcat  == SpaceConst) 
+                    {
                         if (Char.IsWhiteSpace(ch))
                             return true;
                         else  {
@@ -919,12 +956,15 @@ namespace System.Text.RegularExpressions {
                     if (chcategory == (UnicodeCategory) curcat)
                         return true;
                 }
-                else {
+                else 
+                {
                     // less than zero is a negative case
-                    if (curcat == NotSpaceConst) {
+                    if (curcat == NotSpaceConst) 
+                    {
                         if (!Char.IsWhiteSpace(ch))
                             return true;
-                        else  {
+                        else  
+                        {
                             i++;
                             continue;
                         }
@@ -947,16 +987,20 @@ namespace System.Text.RegularExpressions {
         *  This is used for categories which are composed of other categories - L, N, Z, W...
         *  These groups need special treatment when they are negated
         */
-        private static bool CharInCategoryGroup(char ch, UnicodeCategory chcategory, string category, ref int i) {
+        private static bool CharInCategoryGroup(UnicodeCategory chcategory, string category, ref int i) 
+        {
             i++;
 
             int curcat = (short) category[i];
-            if (curcat > 0) {
+            if (curcat > 0) 
+            {
                 // positive case - the character must be in ANY of the categories in the group
                 bool answer = false;
 
-                while (curcat != 0) {
-                    if (!answer) {
+                while (curcat != 0) 
+                {
+                    if (!answer) 
+                    {
                         --curcat;
                         if (chcategory == (UnicodeCategory) curcat)
                             answer = true;
@@ -971,8 +1015,10 @@ namespace System.Text.RegularExpressions {
                 // negative case - the character must be in NONE of the categories in the group
                 bool answer = true;
 
-                while (curcat != 0) {
-                    if (answer) {
+                while (curcat != 0) 
+                {
+                    if (answer) 
+                    {
                         //curcat = -curcat;
                         //--curcat;
                         curcat = -1 - curcat;
@@ -986,24 +1032,28 @@ namespace System.Text.RegularExpressions {
             }
         }
 
-        private static string NegateCategory(string category) {
+        private static string NegateCategory(string category) 
+        {
             if (category == null)
                 return null;
 
             StringBuilder sb = new StringBuilder(category.Length);
 
-            for (int i=0; i<category.Length; i++) {
+            for (int i=0; i < category.Length; i++) 
+            {
                 short ch = (short) category[i];
                 sb.Append( (char) -ch);
             }
             return sb.ToString();
         }
 
-        internal static RegexCharClass Parse(string charClass) {
+        internal static RegexCharClass Parse(string charClass) 
+        {
             return ParseRecursive(charClass, 0);
         }
 
-        private static RegexCharClass ParseRecursive(string charClass, int start) {
+        private static RegexCharClass ParseRecursive(string charClass, int start) 
+        {
             int mySetLength = charClass[start+SETLENGTH];
             int myCategoryLength = charClass[start+CATEGORYLENGTH];
             int myEndPosition = start + SETSTART + mySetLength + myCategoryLength;
@@ -1011,7 +1061,8 @@ namespace System.Text.RegularExpressions {
             List<SingleRange> ranges = new List<SingleRange>(mySetLength);
             int i=start+SETSTART;
             int end = i + mySetLength; 
-            while (i<end) {
+            while (i<end) 
+            {
                 char first = charClass[i];
                 i++;
 
@@ -1036,49 +1087,46 @@ namespace System.Text.RegularExpressions {
          *
          * The number of single ranges that have been accumulated so far.
          */
-        private int RangeCount() {
-            return _rangelist.Count;
+        private int RangeCount() 
+        {
+            return ranges.Count;
         }
 
-        /*
-         * ToString()
-         *
-         * Constructs the string representation of the class.
-         */
-        internal String ToStringClass() {
-            if (!_canonical)
+        /// <summary>
+        /// Constructs the string representation of the class. 
+        /// </summary>
+        /// <returns></returns>
+        internal string ToStringClass() 
+        {
+            if (!rangesSorted)
                 Canonicalize();
 
             // make a guess about the length of the ranges.  We'll update this at the end. 
             // This is important because if the last range ends in LastChar, we won't append
             // LastChar to the list. 
-            int rangeLen = _rangelist.Count * 2 ;
-            StringBuilder sb = new StringBuilder(rangeLen + _categories.Length + 3);
+            int rangeLen = ranges.Count * 2 ;
+            StringBuilder sb = new StringBuilder(rangeLen + categories.Length + 3);
 
-            int flags;
-            if (_negate) 
-                flags = 1;
-            else
-                flags = 0;
-
+            int flags = Negate ? 1 : 0;
             sb.Append((char) flags);
             sb.Append((char) rangeLen);
-            sb.Append((char) _categories.Length);
+            sb.Append((char) categories.Length);
             
-            for (int i = 0; i < _rangelist.Count; i++) {
-                SingleRange currentRange = _rangelist[i];
-                sb.Append(currentRange._first);
+            for (int i = 0; i < ranges.Count; i++) 
+            {
+                SingleRange currentRange = ranges[i];
+                sb.Append(currentRange.first);
 
-                if (currentRange._last != Lastchar)
-                    sb.Append((char)(currentRange._last + 1));
+                if (currentRange.last != Lastchar)
+                    sb.Append((char)(currentRange.last + 1));
             }
 
             sb[SETLENGTH] = (char) (sb.Length - SETSTART);
             
-            sb.Append(_categories);
+            sb.Append(categories);
 
-            if (_subtractor != null)
-                sb.Append(_subtractor.ToStringClass());
+            if (Subtraction != null)
+                sb.Append(Subtraction.ToStringClass());
             
             return sb.ToString();
         }
@@ -1088,8 +1136,9 @@ namespace System.Text.RegularExpressions {
          *
          * The ith range.
          */
-        private SingleRange GetRangeAt(int i) {
-            return _rangelist[i];
+        private SingleRange GetRangeAt(int i) 
+        {
+            return ranges[i];
         }
 
         /*
@@ -1097,62 +1146,66 @@ namespace System.Text.RegularExpressions {
          *
          * Logic to reduce a character class to a unique, sorted form.
          */
-        private void Canonicalize() {
+        private void Canonicalize() 
+        {
             SingleRange CurrentRange;
             int i;
             int j;
             char last;
-            bool Done;
 
-            _canonical = true;
-            _rangelist.Sort(0, _rangelist.Count, new SingleRangeComparer());
+            rangesSorted = true;
+            ranges = ranges.OrderBy(x => x.first).ToList();
 
-            //
             // Find and eliminate overlapping or abutting ranges
-            //
+            if (ranges.Count > 1) 
+            {
+                var done = false;
 
-            if (_rangelist.Count > 1) {
-                Done = false;
-
-                for (i = 1, j = 0; ; i++) {
-                    for (last = _rangelist[j]._last; ; i++) {
-                        if (i == _rangelist.Count || last == Lastchar) {
-                            Done = true;
+                for (i = 1, j = 0; ; i++) 
+                {
+                    for (last = ranges[j].last; ; i++) 
+                    {
+                        if (i == ranges.Count || last == Lastchar) 
+                        {
+                            done = true;
                             break;
                         }
 
-                        if ((CurrentRange = _rangelist[i])._first > last + 1)
+                        if ((CurrentRange = ranges[i]).first > last + 1)
                             break;
 
-                        if (last < CurrentRange._last)
-                            last = CurrentRange._last;
+                        if (last < CurrentRange.last)
+                            last = CurrentRange.last;
                     }
 
-                    _rangelist[j]._last = last;
+                    ranges[j].last = last;
 
                     j++;
 
-                    if (Done)
+                    if (done)
                         break;
 
                     if (j < i)
-                        _rangelist[j] = _rangelist[i];
+                        ranges[j] = ranges[i];
                 }
-                _rangelist.RemoveRange(j, _rangelist.Count - j);
+                ranges.RemoveRange(j, ranges.Count - j);
             }
         }
 
-        private static String SetFromProperty(String capname, bool invert, string pattern) {
+        private static string SetFromProperty(string capname, bool invert, string pattern) 
+        {
             int min = 0;
             int max = _propTable.GetLength(0);
-            while (min != max) {
+            while (min != max) 
+            {
                 int mid = (min + max) / 2;
                 int res = String.Compare(capname, _propTable[mid,0], StringComparison.Ordinal);
                 if (res < 0)
                     max = mid;
                 else if (res > 0)
                     min = mid + 1;
-                else {
+                else 
+                {
                     String set = _propTable[mid,1];
                     Debug.Assert(!String.IsNullOrEmpty(set), "Found a null/empty element in RegexCharClass prop table");
                     if (invert) 
@@ -1172,14 +1225,13 @@ namespace System.Text.RegularExpressions {
             throw new ArgumentException(SR.GetString(SR.MakeException, pattern, SR.GetString(SR.UnknownProperty, capname))); 
         }
 
-//#if DBG
-
-        /*
-         * SetDescription()
-         *
-         * Produces a human-readable description for a set string.
-         */
-        internal static String SetDescription(String set) {
+        /// <summary>
+        /// Produces a human-readable description for a set string. 
+        /// </summary>
+        /// <param name="set"></param>
+        /// <returns></returns>
+        internal static string SetDescription(string set) 
+        {
             int mySetLength = set[SETLENGTH];
             int myCategoryLength = set[CATEGORYLENGTH];
             int myEndPosition = SETSTART + mySetLength + myCategoryLength;
@@ -1187,40 +1239,52 @@ namespace System.Text.RegularExpressions {
             StringBuilder desc = new StringBuilder("[");
 
             int index = SETSTART;
-            char ch1;
-            char ch2;
+            char currentChar;
+            char nextChar;
 
             if (IsNegated(set)) 
                 desc.Append('^');
 
-            while (index < SETSTART + set[SETLENGTH]) {
-                ch1 = set[index];
+            // Chars in set are added in pairs. Could be just one char for the last or single set.
+            // If range has one char value then c[i]==c[i+1]
+            // If range has two sequential char values then c[i]==c[i+1]+1
+            // If range covers range of chars then c[i] < c[i+1]+1
+            while (index < SETSTART + set[SETLENGTH]) 
+            {
+                currentChar = set[index];
                 if (index + 1 < set.Length)
-                    ch2 = (char)(set[index + 1] - 1);
+                    nextChar = (char)(set[index + 1] - 1);
                 else
-                    ch2 = Lastchar;
+                    nextChar = Lastchar;
 
-                desc.Append(CharDescription(ch1));
+                desc.Append(CharDescription(currentChar));
 
-                if (ch2 != ch1) {
-                    if (ch1 + 1 != ch2)
-                        desc.Append('-');
-                    desc.Append(CharDescription(ch2));
+                if (nextChar != currentChar) 
+                {
+                    if (currentChar + 1 != nextChar) desc.Append('-');
+                    desc.Append(CharDescription(nextChar));
                 }
                 index += 2;
             }
 
-            while (index < SETSTART + set[SETLENGTH] + set[CATEGORYLENGTH]) {
-                ch1 = set[index];
-                if (ch1 == 0) {
+            // Char categories. String after set 
+            // If string starts with 0 we have >1 categories
+            // If just one then string contains category name
+            while (index < SETSTART + set[SETLENGTH] + set[CATEGORYLENGTH]) 
+            {
+                currentChar = set[index];
+                if (currentChar == 0) 
+                {
                     bool found = false;
                     
-                    int lastindex = set.IndexOf(GroupChar, index+1);
-                    string group = set.Substring(index,lastindex-index + 1);
+                    int lastindex = set.IndexOf(GroupChar, index + 1);
+                    string group = set.Substring(index, lastindex - index + 1);
 
                     IDictionaryEnumerator en = _definedCategories.GetEnumerator();
-                    while(en.MoveNext()) {
-                        if (group.Equals(en.Value)) {
+                    while(en.MoveNext()) 
+                    {
+                        if (group.Equals(en.Value)) 
+                        {
                             if ((short) set[index+1] > 0)
                                 desc.Append("\\p{" + en.Key + "}");
                             else
@@ -1231,7 +1295,8 @@ namespace System.Text.RegularExpressions {
                         }
                     }
 
-                    if (!found) {
+                    if (!found) 
+                    {
                         if (group.Equals(Word))
                             desc.Append("\\w"); 
                         else if (group.Equals(NotWord))
@@ -1242,14 +1307,112 @@ namespace System.Text.RegularExpressions {
                     
                     index = lastindex;
                 }
-                else {
-                    desc.Append(CategoryDescription(ch1));
+                else 
+                {
+                    desc.Append(CategoryDescription(currentChar));
                 }
                     
                 index++;
             }
 
-            if (set.Length > myEndPosition) {
+            if (set.Length > myEndPosition) 
+            {
+                desc.Append('-');
+                desc.Append(SetDescription(set.Substring(myEndPosition)));
+            }
+
+            desc.Append(']');
+
+            return desc.ToString();
+        }
+
+        internal static string SetDescription2(string set) 
+        {
+            int mySetLength = set[SETLENGTH];
+            int myCategoryLength = set[CATEGORYLENGTH];
+            int myEndPosition = SETSTART + mySetLength + myCategoryLength;
+
+            StringBuilder desc = new StringBuilder("[");
+
+            int index = SETSTART;
+            char currentChar;
+            char nextChar;
+
+            if (IsNegated(set)) 
+                desc.Append('^');
+
+            // Chars in set are added in pairs. Could be just one char for the last or single set.
+            // If range has one char value then c[i]==c[i+1]
+            // If range has two sequential char values then c[i]==c[i+1]+1
+            // If range covers range of chars then c[i] < c[i+1]+1
+            while (index < SETSTART + mySetLength) 
+            {
+                currentChar = set[index];
+                if (index + 1 < set.Length)
+                    nextChar = (char)(set[index + 1] - 1);
+                else
+                    nextChar = Lastchar;
+
+                desc.Append(CharDescription(currentChar));
+
+                if (nextChar != currentChar) 
+                {
+                    if (currentChar + 1 != nextChar) desc.Append('-');
+                    desc.Append(CharDescription(nextChar));
+                }
+                index += 2;
+            }
+
+            // Char categories. String after set 
+            // If string starts with 0 we have >1 categories
+            // If just one then string contains category name
+            while (index < myEndPosition) 
+            {
+                currentChar = set[index];
+                if (currentChar == 0) 
+                {
+                    bool found = false;
+                    
+                    int lastindex = set.IndexOf(GroupChar, index + 1);
+                    string group = set.Substring(index, lastindex - index + 1);
+
+                    IDictionaryEnumerator en = _definedCategories.GetEnumerator();
+                    while(en.MoveNext()) 
+                    {
+                        if (group.Equals(en.Value)) 
+                        {
+                            if ((short) set[index+1] > 0)
+                                desc.Append("\\p{" + en.Key + "}");
+                            else
+                                desc.Append("\\P{" + en.Key + "}");
+
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) 
+                    {
+                        if (group.Equals(Word))
+                            desc.Append("\\w"); 
+                        else if (group.Equals(NotWord))
+                            desc.Append("\\W");
+                        else 
+                            Debug.Assert(false, "Couldn't find a goup to match '" + group + "'");
+                    }
+                    
+                    index = lastindex;
+                }
+                else 
+                {
+                    desc.Append(CategoryDescription(currentChar));
+                }
+                    
+                index++;
+            }
+
+            if (set.Length > myEndPosition) 
+            {
                 desc.Append('-');
                 desc.Append(SetDescription(set.Substring(myEndPosition)));
             }
@@ -1260,42 +1423,48 @@ namespace System.Text.RegularExpressions {
         }
 
         internal static readonly char [] Hex = new char [] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-        internal static readonly string[] Categories = new string[] {"Lu", "Ll", "Lt", "Lm", "Lo", InternalRegexIgnoreCase,
-                                                                     "Mn", "Mc", "Me", 
-                                                                     "Nd", "Nl", "No", 
-                                                                     "Zs", "Zl", "Zp",
-                                                                     "Cc", "Cf", "Cs", "Co",
-                                                                     "Pc", "Pd", "Ps", "Pe", "Pi", "Pf", "Po",
-                                                                     "Sm", "Sc", "Sk", "So",
-                                                                     "Cn" };
+        internal static readonly string[] Categories = new string[] {
+            "Lu", "Ll", "Lt", "Lm", "Lo", InternalRegexIgnoreCase,
+            "Mn", "Mc", "Me", 
+            "Nd", "Nl", "No", 
+            "Zs", "Zl", "Zp",
+            "Cc", "Cf", "Cs", "Co",
+            "Pc", "Pd", "Ps", "Pe", "Pi", "Pf", "Po",
+            "Sm", "Sc", "Sk", "So",
+            "Cn" };
                                                                      
          /*
          * CharDescription()
          *
          * Produces a human-readable description for a single character.
          */
-        internal static String CharDescription(char ch) {
+        internal static string CharDescription(char ch) 
+        {
             StringBuilder sb = new StringBuilder();
             int shift;
 
             if (ch == '\\')
                 return "\\\\";
 
-            if (ch >= ' ' && ch <= '~') {
+            if (ch >= ' ' && ch <= '~') 
+            {
                 sb.Append(ch);
                 return sb.ToString();
             }
 
-            if (ch < 256) {
+            if (ch < 256) 
+            {
                 sb.Append("\\x");
                 shift = 8;
             }
-            else {
+            else 
+            {
                 sb.Append("\\u");
                 shift = 16;
             }
 
-            while (shift > 0) {
+            while (shift > 0) 
+            {
                 shift -= 4;
                 sb.Append(Hex[(ch >> shift) & 0xF]);
             }
@@ -1303,12 +1472,14 @@ namespace System.Text.RegularExpressions {
             return sb.ToString();
         }
 
-        private static String CategoryDescription(char ch) {
+        private static string CategoryDescription(char ch) 
+        {
             if (ch == SpaceConst)
                 return "\\s";
             else if ((short) ch == NotSpaceConst)
                 return "\\S";
-            else if ((short) ch < 0) {
+            else if ((short) ch < 0) 
+            {
                 //Margus: seems to be a bug
                 //return "\\P{" + Categories[(- ((short)ch) - 1)] + "}";
                 return "\\P{" + Categories[(-((short)ch))] + "}";
@@ -1319,12 +1490,12 @@ namespace System.Text.RegularExpressions {
                 return "\\p{" + Categories[((short)ch)] + "}";
             }
         }
-        
-//#endif
 
         // Lower case mapping descriptor.
-        private struct LowerCaseMapping {
-            internal LowerCaseMapping(char chMin, char chMax, int lcOp, int data) {
+        private struct LowerCaseMapping 
+        {
+            internal LowerCaseMapping(char chMin, char chMax, int lcOp, int data) 
+            {
                 _chMin = chMin;
                 _chMax = chMax;
                 _lcOp  = lcOp;
@@ -1337,32 +1508,29 @@ namespace System.Text.RegularExpressions {
             internal int _data;
         }
 
-        /*
-         * SingleRangeComparer
-         *
-         * For sorting ranges; compare based on the first char in the range.
-         */
-        private sealed class SingleRangeComparer : IComparer<SingleRange> {
-            public int Compare(SingleRange x, SingleRange y) {
-                return((x)._first < (y)._first ? -1
-                       : ((x)._first > (y)._first ? 1 : 0));
+        /// <summary>
+        /// A first/last pair representing a single range of characters.
+        /// </summary>
+        public sealed class SingleRange 
+        {
+            internal char first;
+            internal char last;
+
+            public bool IsSingleCharRange => first == last;
+            internal SingleRange(char first, char last) 
+            {
+                this.first = first;
+                this.last = last;
             }
-        }
-        
-        /*
-         * SingleRange
-         *
-         * A first/last pair representing a single range of characters.
-         */
-        private sealed class SingleRange {
-            internal SingleRange(char first, char last) {
-                _first = first;
-                _last = last;
+
+            public bool Contains(char c) => first <= c && c <= last;
+
+            public override string ToString()
+            {
+                if (IsSingleCharRange) return first.ToString();
+                if (first + 1 == last) return $"{first},{last}";
+                return (first == '.' || last == '.') ? $"{first}-{last}" : $"{first}..{last}";
             }
-        
-            internal char _first;
-            internal char _last;
         }
     }
-
 }

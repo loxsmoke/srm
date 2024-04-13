@@ -11,27 +11,32 @@ namespace System.Text.RegularExpressions {
 
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
 
     public sealed class RegexTree 
     {
-        internal RegexTree(RegexNode root, Dictionary<int, int> caps, int[] capnumlist, int captop, Dictionary<string, int> capnames, string[] capslist, RegexOptions opts)
+        public RegexTree(
+            RegexNode root, 
+            Dictionary<int, int> caps, 
+            int[] capnumlist, 
+            Dictionary<string, int> capnames,
+            List<string> capslist, 
+            RegexOptions opts)
         {
             this.root = root;
             _caps = caps;
             _capnumlist = capnumlist;
             _capnames = capnames;
-            _capslist = capslist;
-            _captop = captop;
+            _capslist = capslist?.ToList();
             options = opts;
         }
 
-        internal RegexNode root;
-        internal Dictionary<int, int> _caps;
-        internal int[]  _capnumlist;
-        internal Dictionary<string, int> _capnames;
-        internal string[]  _capslist;
-        internal RegexOptions options;
-        internal int       _captop;
+        public RegexNode root;
+        public Dictionary<int, int> _caps;
+        public int[]  _capnumlist;
+        public Dictionary<string, int> _capnames;
+        public List<string>  _capslist;
+        public RegexOptions options;
 
 #if DBG
         internal void Dump() {
